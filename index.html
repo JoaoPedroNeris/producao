@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FIE 2025 - Gestão de Montagem</title>
+    <title>Gestão FIE 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         /* --- ESTILOS DO MAPA --- */
@@ -13,7 +13,7 @@
             transition: all 0.2s ease; 
             stroke-width: 2px;
             stroke: #94a3b8; 
-            pointer-events: auto; 
+            pointer-events: all !important; /* FORÇA O CLIQUE */
         }
         
         .estande:hover { 
@@ -23,21 +23,21 @@
             z-index: 100;
         }
         
-        /* STATUS (Apenas Bordas) */
-        .status-construido { stroke: #16a34a !important; stroke-width: 5px; } /* Verde */
-        .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; } /* Laranja */
-        .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; } /* Cinza */
+        /* CORES DE STATUS (Apenas Borda) */
+        .status-construido { stroke: #16a34a !important; stroke-width: 5px; } 
+        .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; }
+        .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; }
 
         /* UTILITÁRIOS */
         .estande-match { stroke: #000 !important; stroke-width: 10px !important; fill-opacity: 1 !important; z-index: 50; }
         .estande-dimmed { opacity: 0.15; }
+        
+        /* MODAL E LOADING */
         .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #475569; }
         
-        /* Modal Animation */
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .anim-modal { animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 
-        /* Scroll Container para Mapas */
         .map-scroll-container {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
@@ -53,15 +53,15 @@
 
     <div id="loading" class="loading-overlay">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span>Carregando Dados...</span>
+        <span>Carregando Sistema...</span>
     </div>
 
-    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal border border-white/20">
             <div class="bg-blue-900 p-4 text-white flex justify-between items-center">
                 <div>
-                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Gerenciar Estande</span>
-                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">ID</h3>
+                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Editar Estande</span>
+                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">...</h3>
                 </div>
                 <button id="btn-close-modal" class="text-white/70 hover:text-white text-3xl p-2">&times;</button>
             </div>
@@ -73,20 +73,20 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Cor)</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Define a Cor)</label>
                     <div class="relative">
-                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none focus:border-blue-500">
-                            <option value="">-- Sem Marcenaria Definida --</option>
+                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none focus:border-blue-500 h-12">
+                            <option value="">-- Sem Marcenaria --</option>
                             </select>
                         <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
                     </div>
-                    <p class="text-[10px] text-blue-600 mt-1 font-bold">💡 Cadastre novas marcenarias no topo da página.</p>
+                    <p class="text-[10px] text-blue-600 mt-1 font-bold">💡 Cadastre novas equipes no topo da página.</p>
                 </div>
                 
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status da Obra</label>
                     <div class="relative">
-                        <select id="select-status" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-600 outline-none bg-white appearance-none">
+                        <select id="select-status" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-600 outline-none bg-white appearance-none h-12">
                             <option value="nao_iniciado">⚪ Não Iniciado</option>
                             <option value="em_construcao">🚧 Em Construção</option>
                             <option value="construido">✅ Construído</option>
@@ -100,7 +100,7 @@
                 </a>
 
                 <div class="flex gap-3 pt-2 border-t border-slate-100 mt-2">
-                    <button id="btn-limpar" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition" title="Limpar dados">🗑️</button>
+                    <button id="btn-limpar" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition" title="Limpar">🗑️</button>
                     <button id="btn-salvar" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg shadow-green-200 transition active:scale-95">CONFIRMAR</button>
                 </div>
             </div>
@@ -119,25 +119,22 @@
                     <span id="progress-text" class="text-xs font-black text-green-600">0%</span>
                 </div>
             </div>
-
             <div class="flex w-full md:w-auto gap-2">
-                <button id="btn-exportar" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 transition">Excel</button>
-                <button id="btn-resetar" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 transition">Reset</button>
+                <button id="btn-exportar" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700">Excel</button>
+                <button id="btn-resetar" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50">Reset</button>
             </div>
         </div>
 
         <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
             <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria (Cor)</h3>
-            
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex gap-2 w-full md:w-1/3">
                     <input type="text" id="novo-nome-marcenaria" placeholder="Nome da Marcenaria" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500">
                     <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-10 w-12 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0">
                     <button id="btn-add-marcenaria" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900">+ Criar</button>
                 </div>
-
                 <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full">
-                    <span class="text-xs text-slate-400 italic py-2">Cadastre as marcenarias aqui para vê-las na janela do estande.</span>
+                    <span class="text-xs text-slate-400 italic py-2">Cadastre as marcenarias aqui.</span>
                 </div>
             </div>
         </div>
@@ -150,8 +147,8 @@
             <h2 class="text-lg font-black text-blue-800 border-l-4 border-blue-600 pl-3">📍 Pavilhão Leste</h2>
             <div class="map-scroll-container shadow-xl">
                 <div class="min-w-[1000px] md:min-w-full relative group">
-                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="w-full h-auto block opacity-60">
-                    <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="w-full h-auto block opacity-60 pointer-events-none">
+                    <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
                         <polygon class="estande" points="903,1596 982,1622 1048,1478 973,1443"><title>Pena 02 03</title></polygon>
                         <a href="https://drive.google.com/drive/folders/1UQl3ZFZRBQuzyzdNShfngPbshaTr7Z8G?usp=sharing"><polygon class="estande" points="1122,1378 991,1391 969,1439 1148,1514"><title>Grendene 04</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="1048,1483 1144,1518 1166,1628 1100,1676 986,1628"><title>IEL 05</title></polygon></a>
@@ -170,7 +167,7 @@
                         <polygon class="estande" points="1582,1458 1735,1642 1796,1589 1770,1432 1700,1349"><title>Sesi/Senai Moda 13 14 17</title></polygon>
                         <a href="https://drive.google.com/drive/folders/12f7NIkhxXRLEg7KEEl04tKlX22_eAey1?usp=sharing"><polygon class="estande" points="1744,1694 1814,1724 1849,1882 1827,1917 1687,1838"><title>Sindi Industria 25</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/11zG1mxlgR3bFdGbx5ZS23J_ON4Qw2eT-?usp=sharing"><polygon class="estande" points="1761,1878 1831,1904 1800,1983 1726,1952"><title>Clipper 26</title></polygon></a>
-                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai</title></polygon>
+                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai Leste</title></polygon>
                         <polygon class="estande" points="2216,1260 2151,1383 2011,1291 2024,1260"><title>Apodi</title></polygon>
                         <polygon class="estande" points="2085,1628 1989,1628 1923,1584 1923,1422 1984,1330 2190,1462"><title>Sinduscon 10 11 12 13 14</title></polygon>
                         <polygon class="estande" points="1945,1900 1923,1870 1923,1721 1993,1677 2076,1817"><title>`Rejuntamix 53</title></polygon>
@@ -304,14 +301,14 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mt-10">
-            <div class="bg-slate-800 p-4"><h2 class="text-white font-bold uppercase tracking-wide">📋 Lista Geral (Banco de Dados)</h2></div>
+            <div class="bg-slate-800 p-4"><h2 class="text-white font-bold uppercase tracking-wide">📋 Lista Geral</h2></div>
             <div class="max-h-[500px] overflow-y-auto overflow-x-auto">
                 <table class="w-full text-left min-w-[600px]">
                     <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th class="p-4 text-xs font-black uppercase text-slate-500">Estande</th>
                             <th class="p-4 text-xs font-black uppercase text-slate-500">Produtor</th>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500">Marcenaria (Cor)</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500">Marcenaria</th>
                             <th class="p-4 text-xs font-black uppercase text-slate-500 text-center">Status</th>
                             <th class="p-4 text-xs font-black uppercase text-slate-500 text-right">Ação</th>
                         </tr>
@@ -323,10 +320,10 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // FIREBASE CONFIG (SEU PROJETO)
+        // CONFIGURAÇÃO DO FIREBASE (FORNECIDA PELO USUÁRIO)
         const firebaseConfig = {
             apiKey: "AIzaSyCVbw_1Jl300_lOFBKGnRBa0Y-pptgMRe0",
             authDomain: "fiec2025-fab88.firebaseapp.com",
@@ -341,11 +338,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- ESTADO ---
+        // ESTADO GLOBAL
         let DADOS = { estandes: {}, marcenarias: {} };
         let estandeSelecionado = null;
 
-        // --- DOM ELEMENTS ---
+        // ELEMENTOS DO DOM
         const els = {
             modal: document.getElementById('modal-edit'),
             title: document.getElementById('modal-title'),
@@ -361,137 +358,27 @@
             marcenariaContainer: document.getElementById('lista-marcenarias-container')
         };
 
-        // --- SYNC ---
-        onValue(ref(db), (snapshot) => {
-            els.loading.style.display = 'none';
-            const val = snapshot.val();
-            DADOS = val || { estandes: {}, marcenarias: {} };
-            
-            if (!DADOS.estandes) DADOS.estandes = {};
-            if (!DADOS.marcenarias) DADOS.marcenarias = {};
-
-            renderizarMarcenarias();
-            renderizarMapaETabela();
-        });
-
-        // --- RENDER ---
-        function renderizarMarcenarias() {
-            // Limpa lista visual e o seletor da modal
-            els.marcenariaContainer.innerHTML = '';
-            els.marcenaria.innerHTML = '<option value="">-- Selecione a Marcenaria --</option>';
-
-            const lista = DADOS.marcenarias;
-            if(Object.keys(lista).length === 0) {
-                els.marcenariaContainer.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhuma marcenaria cadastrada.</p>';
-                return;
-            }
-
-            for (const [nome, cor] of Object.entries(lista)) {
-                // UI de Cadastro
-                els.marcenariaContainer.innerHTML += `
-                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shrink-0">
-                        <div class="w-4 h-4 rounded-full border border-slate-300" style="background-color: ${cor}"></div>
-                        ${nome}
-                        <button class="text-red-400 hover:text-red-600 ml-1 font-bold" onclick="window.removerMarcenaria('${nome}')">×</button>
-                    </div>`;
-                
-                // IMPORTANTE: Preenche o dropdown do modal
-                const opt = document.createElement('option');
-                opt.value = nome;
-                opt.textContent = nome;
-                els.marcenaria.appendChild(opt);
-            }
-        }
-
-        function renderizarMapaETabela() {
-            let total = 0, concluidos = 0;
-            els.tableBody.innerHTML = '';
-
-            document.querySelectorAll('.estande').forEach(poly => {
-                const nome = poly.getAttribute('data-nome');
-                const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
-                const dados = DADOS.estandes[idSeguro] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
-                
-                // MAPA
-                aplicarEstiloVisual(poly, dados);
-
-                // TABELA
-                total++;
-                if(dados.status === 'construido') concluidos++;
-
-                let badgeClass = 'bg-slate-100 text-slate-500';
-                let badgeText = 'Não Iniciado';
-                if (dados.status === 'construido') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; badgeText = 'Pronto'; }
-                else if (dados.status === 'em_construcao') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; badgeText = 'Obras'; }
-
-                const corHex = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]) || '#cbd5e1';
-                
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 transition cursor-pointer group border-b border-slate-50";
-                tr.innerHTML = `
-                    <td class="p-4 font-bold text-slate-700 whitespace-nowrap">${nome}</td>
-                    <td class="p-4 text-slate-500">${dados.produtor || '-'}</td>
-                    <td class="p-4 text-slate-600 flex items-center">
-                        <span class="inline-block w-3 h-3 rounded-full mr-2 shadow-sm" style="background:${corHex}"></span>
-                        ${dados.marcenaria || '-'}
-                    </td>
-                    <td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border ${badgeClass}">${badgeText}</span></td>
-                    <td class="p-4 text-right"><span class="text-blue-600 text-xs font-bold uppercase opacity-0 group-hover:opacity-100">Editar</span></td>
-                `;
-                tr.onclick = () => focarNoMapa(nome);
-                els.tableBody.appendChild(tr);
-            });
-
-            const p = total > 0 ? Math.round((concluidos / total) * 100) : 0;
-            els.progress.style.width = p + '%';
-            els.progressText.innerText = p + '%';
-            
-            filtrarBusca(els.search.value);
-        }
-
-        function aplicarEstiloVisual(poly, dados) {
-            poly.classList.remove('status-construido', 'status-em_construcao', 'status-nao_iniciado');
-            poly.classList.add(dados.status ? `status-${dados.status}` : 'status-nao_iniciado');
-
-            const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
-            poly.style.fill = cor || "";
-            poly.style.fillOpacity = cor ? "0.6" : "";
-        }
-
-        // --- AÇÕES ---
-        window.adicionarMarcenaria = () => {
-            const nome = document.getElementById('novo-nome-marcenaria').value.trim();
-            const cor = document.getElementById('nova-cor-marcenaria').value;
-            if(!nome) return alert("Nome obrigatório");
-            const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
-            set(ref(db, 'marcenarias/' + idSeguro), cor);
-            document.getElementById('novo-nome-marcenaria').value = '';
-        };
-
-        window.removerMarcenaria = (nome) => {
-            if(confirm(`Apagar marcenaria ${nome}?`)) {
-                remove(ref(db, 'marcenarias/' + nome));
-            }
-        };
-
+        // --- 1. FUNÇÃO GLOBAL PARA ABRIR O MODAL (CRUCIAL) ---
         window.abrirModal = (poly) => {
             estandeSelecionado = poly;
             const nome = poly.getAttribute('data-nome');
+            // Sanitiza o ID para o Firebase
             const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
             const dados = DADOS.estandes[idSeguro] || {};
             
+            // Preenche os campos
             els.title.innerText = nome;
             els.produtor.value = dados.produtor || ''; 
             els.status.value = dados.status || 'nao_iniciado';
 
-            // RECARREGA LISTA PARA GARANTIR E SETA VALOR
-            renderizarMarcenarias();
-            els.marcenaria.value = dados.marcenaria || '';
+            // Garante que o select de marcenaria está preenchido e seleciona o valor correto
+            renderizarMarcenarias(); 
+            els.marcenaria.value = dados.marcenaria || ''; 
 
-            // LOGICA ROBUSTA PARA LINK DO DRIVE
-            let current = poly;
+            // Lógica de Link (Procura no Pai <a>)
             let link = null;
-            // Sobe até 3 níveis procurando o link <a>
+            let current = poly;
+            // Sobe até 3 níveis no DOM procurando <a>
             for (let i = 0; i < 3; i++) {
                 if (current.tagName === 'A' || current.tagName === 'a') {
                     link = current.href;
@@ -513,9 +400,117 @@
             els.modal.classList.remove('hidden');
         };
 
-        window.fecharModal = () => {
-            els.modal.classList.add('hidden');
-            estandeSelecionado = null;
+        // --- 2. SINCRONIZAÇÃO (REALTIME) ---
+        onValue(ref(db), (snapshot) => {
+            els.loading.style.display = 'none';
+            const val = snapshot.val();
+            DADOS = val || { estandes: {}, marcenarias: {} };
+            
+            // Garante estrutura
+            if (!DADOS.estandes) DADOS.estandes = {};
+            if (!DADOS.marcenarias) DADOS.marcenarias = {};
+
+            renderizarMarcenarias();
+            renderizarMapaETabela();
+        });
+
+        // --- 3. RENDERIZAÇÃO ---
+        function renderizarMarcenarias() {
+            els.marcenariaContainer.innerHTML = '';
+            els.marcenaria.innerHTML = '<option value="">-- Sem Marcenaria Definida --</option>';
+
+            const lista = DADOS.marcenarias;
+            if(Object.keys(lista).length === 0) {
+                els.marcenariaContainer.innerHTML = '<p class="text-sm text-slate-400 italic">Cadastre uma equipe acima.</p>';
+            }
+
+            for (const [nome, cor] of Object.entries(lista)) {
+                // UI Visual
+                els.marcenariaContainer.innerHTML += `
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shrink-0">
+                        <div class="w-4 h-4 rounded-full border border-slate-300" style="background-color: ${cor}"></div>
+                        ${nome}
+                        <button class="text-red-400 hover:text-red-600 ml-1 font-bold" onclick="window.removerMarcenaria('${nome}')">×</button>
+                    </div>`;
+                
+                // Select Modal
+                const opt = document.createElement('option');
+                opt.value = nome;
+                opt.textContent = nome;
+                els.marcenaria.appendChild(opt);
+            }
+        }
+
+        function renderizarMapaETabela() {
+            let total = 0, concluidos = 0;
+            els.tableBody.innerHTML = '';
+
+            document.querySelectorAll('.estande').forEach(poly => {
+                const nome = poly.getAttribute('data-nome');
+                const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
+                const dados = DADOS.estandes[idSeguro] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
+                
+                // MAPA (COR E BORDA)
+                poly.classList.remove('status-construido', 'status-em_construcao', 'status-nao_iniciado');
+                poly.classList.add(dados.status ? `status-${dados.status}` : 'status-nao_iniciado');
+
+                const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
+                poly.style.fill = cor || "";
+                poly.style.fillOpacity = cor ? "0.6" : "";
+
+                // TABELA
+                total++;
+                if(dados.status === 'construido') concluidos++;
+
+                let badgeClass = 'bg-slate-100 text-slate-500';
+                let badgeText = 'Não Iniciado';
+                if (dados.status === 'construido') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; badgeText = 'Pronto'; }
+                else if (dados.status === 'em_construcao') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; badgeText = 'Obras'; }
+
+                const corHex = cor || '#cbd5e1';
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition cursor-pointer group border-b border-slate-50";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-slate-700 whitespace-nowrap">${nome}</td>
+                    <td class="p-4 text-slate-500">${dados.produtor || '-'}</td>
+                    <td class="p-4 text-slate-600 flex items-center">
+                        <span class="inline-block w-3 h-3 rounded-full mr-2 shadow-sm" style="background:${corHex}"></span>
+                        ${dados.marcenaria || '-'}
+                    </td>
+                    <td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border ${badgeClass}">${badgeText}</span></td>
+                    <td class="p-4 text-right"><span class="text-blue-600 text-xs font-bold uppercase opacity-0 group-hover:opacity-100">Editar</span></td>
+                `;
+                tr.onclick = () => focarNoMapa(nome);
+                els.tableBody.appendChild(tr);
+            });
+
+            // Progresso
+            const p = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+            els.progress.style.width = p + '%';
+            els.progressText.innerText = p + '%';
+            
+            filtrarBusca(els.search.value);
+        }
+
+        // --- 4. FUNÇÕES DO USUÁRIO ---
+        window.adicionarMarcenaria = () => {
+            const nome = document.getElementById('novo-nome-marcenaria').value.trim();
+            const cor = document.getElementById('nova-cor-marcenaria').value;
+            if(!nome) return alert("Digite o nome da equipe.");
+            
+            // Salva no DB
+            // Como chave usamos idSeguro, mas para simplificar vamos usar uma lista simples
+            const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
+            set(ref(db, 'marcenarias/' + idSeguro), cor);
+            document.getElementById('novo-nome-marcenaria').value = '';
+        };
+
+        window.removerMarcenaria = (nome) => {
+            if(confirm(`Remover a equipe "${nome}"?`)) {
+                const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
+                remove(ref(db, 'marcenarias/' + idSeguro));
+            }
         };
 
         window.salvarEstande = () => {
@@ -523,23 +518,22 @@
             const nome = estandeSelecionado.getAttribute('data-nome');
             const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
             
-            // LER VALORES DIRETAMENTE
-            const produtorVal = document.getElementById('input-produtor').value;
-            const marcenariaVal = document.getElementById('select-marcenaria').value;
-            const statusVal = document.getElementById('select-status').value;
+            // Pega valores
+            const prod = document.getElementById('input-produtor').value;
+            const marc = document.getElementById('select-marcenaria').value;
+            const stat = document.getElementById('select-status').value;
 
             set(ref(db, 'estandes/' + idSeguro), {
-                produtor: produtorVal,
-                marcenaria: marcenariaVal,
-                status: statusVal
-            }).then(() => {
-                window.fecharModal();
+                produtor: prod,
+                marcenaria: marc,
+                status: stat
             });
+            window.fecharModal();
         };
 
         window.limparEstandeIndividual = () => {
             if (!estandeSelecionado) return;
-            if(confirm('Zerar dados deste estande?')) {
+            if(confirm('Limpar dados deste estande?')) {
                 const nome = estandeSelecionado.getAttribute('data-nome');
                 const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
                 remove(ref(db, 'estandes/' + idSeguro));
@@ -548,55 +542,35 @@
         };
 
         window.resetarDados = () => {
-            if(confirm("ATENÇÃO: ISSO APAGARÁ TUDO NO SERVIDOR!")) set(ref(db), { estandes: {}, marcenarias: {} });
-        };
-
-        document.getElementById('btn-add-marcenaria').onclick = window.adicionarMarcenaria;
-        document.getElementById('btn-exportar').onclick = () => {
-            let csv = '\uFEFFEstande;Produtor;Marcenaria;Status\n'; 
-            for (const [id, dados] of Object.entries(DADOS.estandes)) {
-                csv += `${id};${dados.produtor};${dados.marcenaria};${dados.status}\n`;
-            }
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = "Relatorio_Online.csv";
-            link.click();
-        };
-
-        document.getElementById('btn-close-modal').onclick = window.fecharModal;
-        document.getElementById('btn-cancelar').onclick = window.fecharModal;
-        document.getElementById('btn-salvar').onclick = window.salvarEstande;
-        document.getElementById('btn-limpar').onclick = window.limparEstandeIndividual;
-        document.getElementById('btn-resetar').onclick = window.resetarDados;
-
-        // MAPA INTERACTIONS
-        window.focarNoMapa = (nome) => {
-            const el = document.querySelector(`[data-nome="${nome}"]`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                const originalFill = el.style.fill;
-                el.style.fill = "#fbbf24"; 
-                setTimeout(() => {
-                    const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
-                    const dados = DADOS.estandes[idSeguro] || {};
-                    aplicarEstiloVisual(el, dados); 
-                }, 1000);
-                window.abrirModal(el);
+            if(confirm("ATENÇÃO: ISSO APAGARÁ TODO O BANCO DE DADOS!")) {
+                set(ref(db), { estandes: {}, marcenarias: {} });
             }
         };
 
-        function init() {
-            document.querySelectorAll('.estande').forEach(poly => {
-                const titleEl = poly.querySelector('title');
-                if (titleEl) poly.setAttribute('data-nome', titleEl.textContent.trim());
-                poly.addEventListener('click', (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    window.abrirModal(poly);
-                });
-            });
-            els.search.addEventListener('input', (e) => filtrarBusca(e.target.value));
-        }
+        window.fecharModal = () => {
+            els.modal.classList.add('hidden');
+            estandeSelecionado = null;
+        };
 
+        // --- 5. INICIALIZAÇÃO ---
+        
+        // Adiciona listeners aos polígonos
+        document.querySelectorAll('.estande').forEach(poly => {
+            const titleEl = poly.querySelector('title');
+            if (titleEl) poly.setAttribute('data-nome', titleEl.textContent.trim());
+            
+            // CLIQUE DIRETO (Sem addEventListener para evitar problemas de escopo)
+            poly.onclick = (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+                window.abrirModal(poly);
+            };
+        });
+
+        // Search Listener
+        els.search.addEventListener('input', (e) => filtrarBusca(e.target.value));
+
+        // Filtro
         function filtrarBusca(t) {
             t = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             document.querySelectorAll('.estande').forEach(poly => {
@@ -621,7 +595,44 @@
             });
         }
 
-        init();
+        // Helpers
+        window.focarNoMapa = (nome) => {
+            const el = document.querySelector(`[data-nome="${nome}"]`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const originalFill = el.style.fill;
+                el.style.fill = "#fbbf24"; 
+                setTimeout(() => {
+                    const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
+                    const dados = DADOS.estandes[idSeguro] || {};
+                    const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
+                    el.style.fill = cor || "";
+                }, 1000);
+                window.abrirModal(el);
+            }
+        };
+
+        // Binds Finais
+        document.getElementById('btn-add-marcenaria').onclick = window.adicionarMarcenaria;
+        document.getElementById('btn-close-modal').onclick = window.fecharModal;
+        document.getElementById('btn-cancelar').onclick = window.fecharModal;
+        document.getElementById('btn-salvar').onclick = window.salvarEstande;
+        document.getElementById('btn-limpar').onclick = window.limparEstandeIndividual;
+        document.getElementById('btn-resetar').onclick = window.resetarDados;
+        
+        document.getElementById('btn-exportar').onclick = () => {
+            let csv = '\uFEFFEstande;Produtor;Marcenaria;Status\n'; 
+            for (const [id, dados] of Object.entries(DADOS.estandes)) {
+                // Recupera nome original (id é o seguro)
+                // Truque: vamos usar o ID seguro mesmo, mas idealmente seria o nome real
+                // O Firebase usa idSeguro como chave. 
+                csv += `${id};${dados.produtor};${dados.marcenaria};${dados.status}\n`;
+            }
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            link.download = "Relatorio_Online.csv";
+            link.click();
+        };
 
     </script>
 </body>
