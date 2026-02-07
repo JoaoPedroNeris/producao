@@ -2,129 +2,157 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gestão FIE 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        /* CSS DO MAPA */
-        .map-container {
-            position: relative;
-            width: 100%;
-            overflow: auto; /* Rolagem se necessário */
-            border: 1px solid #ccc;
-        }
-
-        /* A imagem fica no fundo */
-        .map-bg {
-            position: relative;
-            display: block;
-            min-width: 1000px; /* Garante tamanho no mobile */
-            width: 100%;
-            height: auto;
-            opacity: 0.6;
-            z-index: 1; /* Camada 1 */
-        }
-
-        /* O SVG fica POR CIMA da imagem */
-        .map-svg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10; /* Camada 10 (Frente) */
-        }
-
-        /* Comportamento do Estande */
+        /* --- ESTILOS DO MAPA --- */
         .estande { 
             fill: rgba(255, 255, 255, 0.5); 
             cursor: pointer; 
-            stroke: #94a3b8; 
+            transition: all 0.2s ease; 
             stroke-width: 2px;
-            pointer-events: all; /* FORÇA O CLIQUE */
-            transition: 0.2s;
+            stroke: #94a3b8; 
+            pointer-events: auto; /* Garante o clique */
         }
         
         .estande:hover { 
-            stroke: #2563eb !important; 
-            stroke-width: 6px !important;
-            filter: brightness(0.9);
+            filter: brightness(0.9) contrast(1.2);
+            stroke-width: 8px !important; 
+            stroke: #2563eb !important;
+            z-index: 100;
         }
-
-        /* Status (Bordas) */
-        .status-construido { stroke: #16a34a !important; stroke-width: 4px; }
-        .status-em_construcao { stroke: #ea580c !important; stroke-width: 4px; stroke-dasharray: 8,4; }
         
-        /* Modal Animation */
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .anim-modal { animation: fadeIn 0.2s ease-out; }
+        /* STATUS (BORDAS) */
+        .status-construido { stroke: #16a34a !important; stroke-width: 5px; } 
+        .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; }
+        .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; }
+
+        /* UTILITÁRIOS */
+        .estande-match { stroke: #000 !important; stroke-width: 10px !important; fill-opacity: 1 !important; z-index: 50; }
+        .estande-dimmed { opacity: 0.15; }
+        
+        /* LOADING */
+        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #475569; }
+        
+        /* SCROLL E MODAL */
+        .map-scroll-container {
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            background: white;
+            position: relative;
+            max-height: 80vh;
+        }
+        
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .anim-modal { animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen pb-20 font-sans text-slate-800">
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 pb-20">
 
-    <div id="modal-edit" class="fixed inset-0 bg-black/60 z-[999] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal">
+    <div id="loading" class="loading-overlay">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <span>Carregando Dados...</span>
+    </div>
+
+    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal border border-white/20">
             <div class="bg-blue-900 p-4 text-white flex justify-between items-center">
-                <h3 id="modal-title" class="font-bold text-lg">Estande ...</h3>
-                <button onclick="fecharModal()" class="text-white text-2xl">&times;</button>
+                <div>
+                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Gerenciar Estande</span>
+                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">ID</h3>
+                </div>
+                <button id="btn-close-modal" class="text-white/70 hover:text-white text-3xl p-2">&times;</button>
             </div>
             
-            <div class="p-6 space-y-4">
+            <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Produtor / Responsável</label>
-                    <input type="text" id="input-produtor" class="w-full border-2 border-gray-300 rounded p-2 outline-blue-500">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor / Responsável</label>
+                    <input type="text" id="input-produtor" placeholder="Nome do Produtor..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500 transition shadow-sm">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Equipe de Marcenaria</label>
-                    <select id="select-marcenaria" class="w-full border-2 border-gray-300 rounded p-2 outline-blue-500 bg-white">
-                        <option value="">-- Selecione --</option>
-                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Define a Cor)</label>
+                    <div class="relative">
+                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none focus:border-blue-500 h-12">
+                            <option value="">-- Selecione a Marcenaria --</option>
+                            </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
+                    </div>
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Status</label>
-                    <select id="select-status" class="w-full border-2 border-gray-300 rounded p-2 outline-blue-500 bg-white">
-                        <option value="nao_iniciado">⚪ Não Iniciado</option>
-                        <option value="em_construcao">🚧 Em Construção</option>
-                        <option value="construido">✅ Construído</option>
-                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status da Obra</label>
+                    <div class="relative">
+                        <select id="select-status" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-600 outline-none bg-white appearance-none h-12">
+                            <option value="nao_iniciado">⚪ Não Iniciado</option>
+                            <option value="em_construcao">🚧 Em Construção</option>
+                            <option value="construido">✅ Construído</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
+                    </div>
                 </div>
 
-                <a id="btn-link-externo" href="#" target="_blank" class="hidden block w-full text-center py-3 bg-blue-100 text-blue-700 font-bold rounded hover:bg-blue-200">
-                    📂 ABRIR PASTA DRIVE
+                <a id="btn-link-externo" href="#" target="_blank" class="hidden flex items-center justify-center gap-2 w-full py-4 bg-cyan-50 text-cyan-700 rounded-xl border-2 border-cyan-100 font-black text-xs uppercase hover:bg-cyan-100 transition shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    ACESSAR PASTA DRIVE
                 </a>
 
-                <div class="flex gap-2 pt-4 border-t mt-2">
-                    <button onclick="salvarEstande()" class="flex-1 bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700">SALVAR</button>
+                <div class="flex gap-3 pt-2 border-t border-slate-100 mt-2">
+                    <button id="btn-limpar" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition" title="Limpar">🗑️</button>
+                    <button id="btn-salvar" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg shadow-green-200 transition tracking-wide active:scale-95">CONFIRMAR</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto p-4 space-y-6">
+    <div class="w-full px-2 md:px-8 pb-10 space-y-6">
         
-        <div class="flex justify-between items-center bg-white p-4 rounded shadow">
-            <h1 class="text-2xl font-black italic text-slate-800">FIE 2025</h1>
-            <div id="loading" class="text-sm font-bold text-orange-500 animate-pulse">Conectando...</div>
-        </div>
-
-        <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
-            <h3 class="font-bold text-gray-500 text-xs uppercase mb-2">Cadastrar Equipe (Cor)</h3>
-            <div class="flex gap-2 mb-2">
-                <input type="text" id="novo-nome" placeholder="Nome da Equipe" class="border p-1 rounded flex-1">
-                <input type="color" id="nova-cor" value="#3b82f6" class="h-8 w-10">
-                <button onclick="addMarcenaria()" class="bg-blue-600 text-white px-4 rounded font-bold">+</button>
+        <div class="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-b-2xl shadow-sm border-x border-b border-slate-200 sticky top-0 z-40">
+            <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
+                <h1 class="text-xl md:text-2xl font-black text-slate-800 uppercase italic tracking-tighter">FIE 2025</h1>
+                
+                <div class="flex items-center gap-2 w-full md:w-auto bg-slate-50 px-3 py-1 rounded-full border border-slate-200">
+                    <div class="w-24 md:w-32 bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="bg-green-500 h-full w-0 transition-all duration-700"></div>
+                    </div>
+                    <span id="progress-text" class="text-xs font-black text-green-600">0%</span>
+                </div>
             </div>
-            <div id="lista-marcenarias" class="flex flex-wrap gap-2 text-xs"></div>
+
+            <div class="flex w-full md:w-auto gap-2">
+                <button id="btn-exportar" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 transition">Excel</button>
+                <button id="btn-resetar" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 transition">Reset</button>
+            </div>
         </div>
 
-        <div class="bg-white p-2 rounded shadow">
-            <h2 class="font-bold text-lg mb-2 pl-2 border-l-4 border-blue-600">Pavilhão Leste</h2>
-            <div class="map-container">
-                <div style="position: relative; min-width: 1000px;">
-                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="map-bg">
-                    <svg viewBox="0 0 4963 3509" class="map-svg" xmlns="http://www.w3.org/2000/svg">
+        <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
+            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria (Cor)</h3>
+            
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex gap-2 w-full md:w-1/3">
+                    <input type="text" id="novo-nome-marcenaria" placeholder="Nome da Marcenaria" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500">
+                    <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-10 w-12 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0">
+                    <button id="btn-add-marcenaria" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900">+ Criar</button>
+                </div>
+                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full">
+                    <span class="text-xs text-slate-400 italic py-2">Cadastre uma marcenaria para começar a colorir.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative">
+            <input type="text" id="search-input" placeholder="🔍 Buscar estande, produtor ou marcenaria..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="space-y-2">
+            <h2 class="text-lg font-black text-blue-800 border-l-4 border-blue-600 pl-3">📍 Pavilhão Leste</h2>
+            <div class="map-scroll-container shadow-xl">
+                <div class="min-w-[1000px] md:min-w-full relative group">
+                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="w-full h-auto block opacity-60">
+                    <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
                         <polygon class="estande" points="903,1596 982,1622 1048,1478 973,1443"><title>Pena 02 03</title></polygon>
                         <a href="https://drive.google.com/drive/folders/1UQl3ZFZRBQuzyzdNShfngPbshaTr7Z8G?usp=sharing"><polygon class="estande" points="1122,1378 991,1391 969,1439 1148,1514"><title>Grendene 04</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="1048,1483 1144,1518 1166,1628 1100,1676 986,1628"><title>IEL 05</title></polygon></a>
@@ -143,7 +171,7 @@
                         <polygon class="estande" points="1582,1458 1735,1642 1796,1589 1770,1432 1700,1349"><title>Sesi/Senai Moda 13 14 17</title></polygon>
                         <a href="https://drive.google.com/drive/folders/12f7NIkhxXRLEg7KEEl04tKlX22_eAey1?usp=sharing"><polygon class="estande" points="1744,1694 1814,1724 1849,1882 1827,1917 1687,1838"><title>Sindi Industria 25</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/11zG1mxlgR3bFdGbx5ZS23J_ON4Qw2eT-?usp=sharing"><polygon class="estande" points="1761,1878 1831,1904 1800,1983 1726,1952"><title>Clipper 26</title></polygon></a>
-                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai</title></polygon>
+                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai Leste</title></polygon>
                         <polygon class="estande" points="2216,1260 2151,1383 2011,1291 2024,1260"><title>Apodi</title></polygon>
                         <polygon class="estande" points="2085,1628 1989,1628 1923,1584 1923,1422 1984,1330 2190,1462"><title>Sinduscon 10 11 12 13 14</title></polygon>
                         <polygon class="estande" points="1945,1900 1923,1870 1923,1721 1993,1677 2076,1817"><title>`Rejuntamix 53</title></polygon>
@@ -182,97 +210,115 @@
                     </svg>
                 </div>
             </div>
+
+            <div class="space-y-2">
+                <h2 class="text-lg font-black text-orange-600 border-l-4 border-orange-500 pl-3">📍 Pavilhão Oeste</h2>
+                <div class="map-scroll-container shadow-xl">
+                    <div class="min-w-[1000px] md:min-w-full relative group">
+                        <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0003.jpg" class="w-full h-auto block opacity-60">
+                        <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
+                            <polygon class="estande" points="719,930 698,952 890,1122 1013,978"><title>Adece 02</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/14CHWr9btxvTlCGFCt9OkrJz49AFfKUdy?usp=sharing"><polygon class="estande" points="671,987 1052,1329 1043,1359 628,1294 562,1246 588,1079"><title>Fiec 01</title></polygon></a>
+                            <polygon class="estande" points="1205,1008 1074,991 1004,1065 1175,1218"><title>Imprensa 03</title></polygon>
+                            <polygon class="estande" points="1004,1066 1179,1215 1166,1267 1087,1298 930,1153"><title>CNI 04</title></polygon>
+                            <polygon class="estande" points="549,1374 623,1339 719,1356 794,1544 566,1640 518,1540"><title>Sindicatos 21 22</title></polygon>
+                            <polygon class="estande" points="588,1682 593,1717 890,1757 816,1586"><title>Sindicatos 20</title></polygon>
+                            <polygon class="estande" points="776,1358 838,1516 1035,1432 1030,1402"><title>Arcepp 19</title></polygon>
+                            <polygon class="estande" points="859,1561 912,1675 1122,1591 1122,1526 1056,1473"><title>Estudio de comunicacao 18</title></polygon>
+                            <polygon class="estande" points="912,1677 951,1769 1083,1791 1113,1585"><title>BB 17</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="1389,1048 1258,1018 1214,1280 1280,1328 1477,1245"><title>IEL 05 06</title></polygon></a>
+                            <polygon class="estande" points="1621,1451 1722,1469 1800,1429 1818,1267 1774,1167 1542,1267"><title>Sebrae 09 10</title></polygon>
+                            <polygon class="estande" points="1450,1044 1744,1097 1757,1127 1525,1228 1529,1229"><title>Faculdades 08</title></polygon>
+                            <polygon class="estande" points="1498,1289 1564,1442 1306,1402 1297,1372"><title>Sebrae 07</title></polygon>
+                            <polygon class="estande" points="1372,1545 1428,1468 1297,1446 1284,1473 1358,1545 1428,1467"><title>Makro 14A</title></polygon>
+                            <polygon class="estande" points="1555,1490 1446,1613 1363,1543 1428,1468"><title>Cegas 14</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/13CJ0MWXuu5z6B9iH6UYrRxRYpWK_QCEV?usp=sharing"><polygon class="estande" points="1253,1514 1175,1536 1135,1799 1266,1816 1411,1654"><title>Sesi/Senai 15 16</title></polygon></a>
+                            <polygon class="estande" points="1617,1498 1709,1519 1787,1568 1748,1738 1555,1568"><title>BNB 11</title></polygon>
+                            <polygon class="estande" points="1560,1564 1739,1726 1674,1813 1481,1647"><title>CEF 12</title></polygon>
+                            <polygon class="estande" points="1621,1873 1643,1851 1450,1680 1323,1829"><title>13</title></polygon>
+                            <polygon class="estande" points="1678,1878 1940,1900 1875,1790 1770,1782"><title>Sesi/Senai</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="1975,1161 1914,1253 1923,1419 1975,1467 2081,1467 2190,1301"><title>SindEnergia 10-14</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2002,1123 2019,1092 2317,1097 2216,1259"><title>SindEnergia 01 02 03</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2383,1096 2514,1091 2514,1363 2444,1402 2260,1288"><title>SindEnergia 04-07</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2229,1328 2413,1438 2404,1468 2142,1468"><title>SindEnergia 08 09</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1mXEGihwhcIXBPcWLVp0HvwInojREQO45?usp=sharing"><polygon class="estande" points="1984,1521 1914,1560 1914,1722 1932,1752 2072,1656"><title>Enel 53</title></polygon></a>
+                            <polygon class="estande" points="1980,1521 2072,1657 2142,1617 2081,1512"><title>Startup-IST 54</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/14hEukvNMWbm0_7aKtskzdBrDxw5TehO9?usp=sharing"><polygon class="estande" points="1980,1825 2046,1773 1997,1707 1932,1742"><title>IMPTudo 52</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1HvGdeCHXN7BAjdTzeNhpa6WFZO9lfYtZ?usp=sharing"><polygon class="estande" points="2072,1664 2120,1729 2050,1769 2006,1703"><title>SindVerde 51</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1LByEgB03QnGcNFbd7zfVcx1Jj8lje4BT?usp=sharing"><polygon class="estande" points="2142,1618 2190,1684 2120,1727 2072,1657"><title>Idear 50</title></polygon></a>
+                            <polygon class="estande" points="2002,1860 2019,1890 2312,1890 2216,1728"><title>Sesi/Senai 47 48 49</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1q2Jnv2FjG-jeTYyH9IGUNuqFSiJHlG8j?usp=sharing"><polygon class="estande" points="2348,1839 2509,1734 2514,1887 2378,1891"><title>BigDooh Midia Ooh 44</title></polygon></a>
+                            <polygon class="estande" points="2256,1695 2439,1585 2514,1625 2509,1734 2348,1835"><title>Qair 43 45 46</title></polygon>
+                            <polygon class="estande" points="2142,1512 2234,1656 2413,1538 2400,1516"><title>Carmehill 08 09</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2562,1097 2702,1097 2816,1281 2632,1395 2562,1369"><title>SindEnergia 15 16 17 18</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2658,1445 2842,1327 2925,1467 2667,1467"><title>SindEnergia 27 28</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2829,1516 2776,1612 2663,1542 2671,1516"><title>SindEnergia 29</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2632,1580 2562,1624 2566,1733 2658,1799 2746,1654"><title>SindEnergia 42</title></polygon></a>
+                            <polygon class="estande" points="2562,1740 2566,1889 2698,1889 2728,1845"><title>SindGrafica 41</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1vl2KuNI_FKjHKfUfJeeN6awIO0OzmNoF?usp=sharing"><polygon class="estande" points="2772,1763 2811,1697 2746,1658 2702,1723"><title>Cobamp 39</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1zkjfgkB1VXYFf0-ry08-IfuASeEGfZHV?usp=sharing"><polygon class="estande" points="2763,1776 2702,1724 2658,1794 2728,1842"><title>SindPneu 40</title></polygon></a>
+                            <polygon class="estande" points="2833,1512 2930,1517 2846,1661 2772,1613"><title>EnergiaLightcom 30</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2860,1259 3070,1124 3052,1093 2755,1097"><title>SindEnergia 19 20 21</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2886,1302 2991,1468 3092,1468 3000,1328 3144,1232 3096,1166"><title>SindEnergia 22 23 24 26</title></polygon></a>
+                            <polygon class="estande" points="3004,1325 3140,1237 3157,1255 3162,1425 3092,1469"><title>Grupo Terlles 25</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1k86F3vThDPLEepa0Upi5xMz5YHBZR5EE?usp=sharing"><polygon class="estande" points="2986,1523 3092,1519 3000,1659 2930,1615"><title>Goodwe 31</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1Ct_Z1TrBGAw_1Viq6YPPG68H9y-4raZ9?usp=sharing"><polygon class="estande" points="2921,1617 3000,1661 2956,1726 2886,1682"><title>Lubtrol 35</title></polygon></a>
+                            <polygon class="estande" points="3092,1520 3162,1564 3157,1638 3057,1577"><title>Dislub 32A</title></polygon>
+                            <polygon class="estande" points="3052,1581 3030,1620 3000,1659 3148,1764 3157,1721 3157,1638"><title>Enie 32B</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1BRaXzC8t0zBRorUXLBBUr7fjaskTDOdh?usp=sharing"><polygon class="estande" points="3000,1663 3135,1751 3096,1825 2951,1729"><title>Energia Pecem 33 34</title></polygon></a>
+                            <polygon class="estande" points="2811,1801 2881,1840 2930,1770 2855,1726"><title>38</title></polygon>
+                            <polygon class="estande" points="2925,1773 3070,1861 3052,1891 2855,1887"><title>36</title></polygon>
+                            <polygon class="estande" points="2807,1801 2759,1888 2860,1888 2877,1836"><title>37</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1gBICofXNIbF9BDwfMnTdomogbDHImKpR?usp=sharing"><polygon class="estande" points="3100,1897 3205,1735 3232,1735 3363,1880"><title>Sesi/Senai</title></polygon></a>
+                            <polygon class="estande" points="3450,1194 3503,1063 3302,1094 3293,1124"><title>Frosty 01</title></polygon>
+                            <polygon class="estande" points="3599,1053 3494,1061 3477,1114 3555,1140"><title>Itaueira 02</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1vGOjBJJoRe7V0OAu1ikf8XlsZcJzq8zC?usp=sharing"><polygon class="estande" points="3555,1149 3525,1219 3450,1188 3477,1114"><title>Milk 03</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1lRJ4vqJRuTxeziXn6yrP-bEx2wYtU-z2?usp=sharing"><polygon class="estande" points="3350,1201 3319,1279 3240,1249 3275,1170"><title>Alimempro  12</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1FWE69FssQ4-Jgm8qgf4kPKv0FG5eHYoM?usp=sharing"><polygon class="estande" points="3411,1228 3389,1307 3315,1285 3350,1202"><title>Sindalimentos 13</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/13TG6Q2Yh65CK287jFVsZB8Gosveu57Ky?usp=sharing"><polygon class="estande" points="3420,1234 3503,1269 3464,1339 3389,1313"><title>Sindcafe 14</title></polygon></a>
+                            <polygon class="estande" points="3389,1313 3328,1466 3253,1431 3227,1273 3236,1243"><title>Betania 11</title></polygon>
+                            <polygon class="estande" points="3464,1346 3424,1447 3328,1460 3389,1316"><title>Diageo 10</title></polygon>
+                            <polygon class="estande" points="3499,1704 3376,1809 3297,1726 3271,1564 3332,1512"><title>M dias 51 52 53</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1AFIQq15xBlxlTVMBIa8XV-r_NNwMAQIh?usp=sharing"><polygon class="estande" points="3424,1502 3503,1590 3446,1638 3332,1511"><title>Dikoko 54</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/14jCDtWXR3gZXYJ4565Yn5GhoETLguICz?usp=sharing"><polygon class="estande" points="3507,1587 3560,1648 3499,1705 3442,1639"><title>LDB 50</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1vr_rDkwHumjlmVPBZ1RtgXR2j9RS0e5P?usp=sharing"><polygon class="estande" points="3599,1686 3726,1831 3429,1874 3407,1848"><title>SindPan 47 48 49</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/144LcokE-liVFrgw6mlgvL9uZojTITzsY?usp=sharing"><polygon class="estande" points="3660,1040 3792,1018 3818,1167 3639,1088"><title>SindLacticinios  04</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1T1ns61BOxmWCZB86Qd4_UNc95W0ukgGE?usp=sharing"><polygon class="estande" points="3630,1089 3713,1124 3674,1199 3604,1168"><title>Compex 07</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1aJim3BKnGbigVent_KEi9B2Ktm08GNrJ?usp=sharing"><polygon class="estande" points="3678,1202 3647,1267 3564,1246 3595,1176"><title>Especiarias da roca 06</title></polygon></a>
+                            <polygon class="estande" points="3713,1125 3814,1173 3831,1278 3766,1331 3647,1274"><title>SindSorvetes 05</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1J4QiOmL4FLYlL7jgLuCCJdypwzQ6xFPN?usp=sharing"><polygon class="estande" points="3625,1321 3547,1286 3485,1444 3582,1422"><title>Fluido 09</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1PNMONo59ds69sxAc3jraDZYOypdAfycw?usp=sharing"><polygon class="estande" points="3625,1331 3744,1374 3739,1396 3582,1423"><title>Netumar 08</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1uWJ4kmmjzzd3yv3fBlvzp9PAyYJRrmXY?usp=sharing"><polygon class="estande" points="3604,1619 3660,1563 3586,1475 3494,1493 3564,1571"><title>Samaria 55</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/18sen-LQ1s_yb8rG3WFImeqEAhg0FPQIc?usp=sharing"><polygon class="estande" points="3752,1445 3761,1472 3660,1559 3586,1476"><title>Serra Grande 56</title></polygon></a>
+                            <polygon class="estande" points="3700,1598 3752,1655 3687,1716 3630,1651"><title>Agromix 46</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/1OFcpges2pbJ8HGbxbAeMADgerDSQkr86?usp=sharing"><polygon class="estande" points="3796,1512 3875,1538 3888,1652 3809,1722 3695,1599"><title>J Macedo 43</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="3958,1296 3884,1274 3866,1160 3941,1086 4059,1213"><title>IEL 18 Oeste</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/181ORvZLpEE7IYgPKX5oVYxJghrJFLlzm?usp=sharing"><polygon class="estande" points="3989,1338 4006,1360 4159,1334 4089,1242"><title>Maria Pitanga 28</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1TO44cinqiLUHRBgFY-g9l-iFVgfkff2J?usp=sharing"><polygon class="estande" points="4155,1124 4221,1067 4159,1005 4098,1058"><title>Grupo Souza Miranda 21</title></polygon></a>
+                            <polygon class="estande" points="3989,1479 3919,1532 3936,1632 4041,1680 4107,1527"><title>3 coracoes 42</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1gBICofXNIbF9BDwfMnTdomogbDHImKpR?usp=sharing"><polygon class="estande" points="4111,1543 4177,1565 4094,1766 3962,1783 3945,1639 4046,1683"><title>Sesi/Senai 39 40 41</title></polygon></a>
+                            <a href="https://drive.google.com/drive/folders/1paJeqT_F1-lf33Rn-sxeqw211A-AVuzJ?usp=sharing"><polygon class="estande" points="4330,1580 4361,1501 4278,1462 4256,1536"><title>Puro acai 35</title></polygon></a>
+                        </svg>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="bg-white p-2 rounded shadow mt-6">
-            <h2 class="font-bold text-lg mb-2 pl-2 border-l-4 border-orange-600">Pavilhão Oeste</h2>
-            <div class="map-container">
-                <div style="position: relative; min-width: 1000px;">
-                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0003.jpg" class="map-bg">
-                    <svg viewBox="0 0 4963 3509" class="map-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon class="estande" points="719,930 698,952 890,1122 1013,978"><title>Adece 02</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/14CHWr9btxvTlCGFCt9OkrJz49AFfKUdy?usp=sharing"><polygon class="estande" points="671,987 1052,1329 1043,1359 628,1294 562,1246 588,1079"><title>Fiec 01</title></polygon></a>
-                        <polygon class="estande" points="1205,1008 1074,991 1004,1065 1175,1218"><title>Imprensa 03</title></polygon>
-                        <polygon class="estande" points="1004,1066 1179,1215 1166,1267 1087,1298 930,1153"><title>CNI 04</title></polygon>
-                        <polygon class="estande" points="549,1374 623,1339 719,1356 794,1544 566,1640 518,1540"><title>Sindicatos 21 22</title></polygon>
-                        <polygon class="estande" points="588,1682 593,1717 890,1757 816,1586"><title>Sindicatos 20</title></polygon>
-                        <polygon class="estande" points="776,1358 838,1516 1035,1432 1030,1402"><title>Arcepp 19</title></polygon>
-                        <polygon class="estande" points="859,1561 912,1675 1122,1591 1122,1526 1056,1473"><title>Estudio de comunicacao 18</title></polygon>
-                        <polygon class="estande" points="912,1677 951,1769 1083,1791 1113,1585"><title>BB 17</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="1389,1048 1258,1018 1214,1280 1280,1328 1477,1245"><title>IEL 05 06</title></polygon></a>
-                        <polygon class="estande" points="1621,1451 1722,1469 1800,1429 1818,1267 1774,1167 1542,1267"><title>Sebrae 09 10</title></polygon>
-                        <polygon class="estande" points="1450,1044 1744,1097 1757,1127 1525,1228 1529,1229"><title>Faculdades 08</title></polygon>
-                        <polygon class="estande" points="1498,1289 1564,1442 1306,1402 1297,1372"><title>Sebrae 07</title></polygon>
-                        <polygon class="estande" points="1372,1545 1428,1468 1297,1446 1284,1473 1358,1545 1428,1467"><title>Makro 14A</title></polygon>
-                        <polygon class="estande" points="1555,1490 1446,1613 1363,1543 1428,1468"><title>Cegas 14</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/13CJ0MWXuu5z6B9iH6UYrRxRYpWK_QCEV?usp=sharing"><polygon class="estande" points="1253,1514 1175,1536 1135,1799 1266,1816 1411,1654"><title>Sesi/Senai 15 16</title></polygon></a>
-                        <polygon class="estande" points="1617,1498 1709,1519 1787,1568 1748,1738 1555,1568"><title>BNB 11</title></polygon>
-                        <polygon class="estande" points="1560,1564 1739,1726 1674,1813 1481,1647"><title>CEF 12</title></polygon>
-                        <polygon class="estande" points="1621,1873 1643,1851 1450,1680 1323,1829"><title>13</title></polygon>
-                        <polygon class="estande" points="1678,1878 1940,1900 1875,1790 1770,1782"><title>Sesi/Senai</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="1975,1161 1914,1253 1923,1419 1975,1467 2081,1467 2190,1301"><title>SindEnergia 10-14</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2002,1123 2019,1092 2317,1097 2216,1259"><title>SindEnergia 01 02 03</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2383,1096 2514,1091 2514,1363 2444,1402 2260,1288"><title>SindEnergia 04-07</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2229,1328 2413,1438 2404,1468 2142,1468"><title>SindEnergia 08 09</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1mXEGihwhcIXBPcWLVp0HvwInojREQO45?usp=sharing"><polygon class="estande" points="1984,1521 1914,1560 1914,1722 1932,1752 2072,1656"><title>Enel 53</title></polygon></a>
-                        <polygon class="estande" points="1980,1521 2072,1657 2142,1617 2081,1512"><title>Startup-IST 54</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/14hEukvNMWbm0_7aKtskzdBrDxw5TehO9?usp=sharing"><polygon class="estande" points="1980,1825 2046,1773 1997,1707 1932,1742"><title>IMPTudo 52</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1HvGdeCHXN7BAjdTzeNhpa6WFZO9lfYtZ?usp=sharing"><polygon class="estande" points="2072,1664 2120,1729 2050,1769 2006,1703"><title>SindVerde 51</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1LByEgB03QnGcNFbd7zfVcx1Jj8lje4BT?usp=sharing"><polygon class="estande" points="2142,1618 2190,1684 2120,1727 2072,1657"><title>Idear 50</title></polygon></a>
-                        <polygon class="estande" points="2002,1860 2019,1890 2312,1890 2216,1728"><title>Sesi/Senai 47 48 49</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1q2Jnv2FjG-jeTYyH9IGUNuqFSiJHlG8j?usp=sharing"><polygon class="estande" points="2348,1839 2509,1734 2514,1887 2378,1891"><title>BigDooh Midia Ooh 44</title></polygon></a>
-                        <polygon class="estande" points="2256,1695 2439,1585 2514,1625 2509,1734 2348,1835"><title>Qair 43 45 46</title></polygon>
-                        <polygon class="estande" points="2142,1512 2234,1656 2413,1538 2400,1516"><title>Carmehill 08 09</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2562,1097 2702,1097 2816,1281 2632,1395 2562,1369"><title>SindEnergia 15 16 17 18</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2658,1445 2842,1327 2925,1467 2667,1467"><title>SindEnergia 27 28</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2829,1516 2776,1612 2663,1542 2671,1516"><title>SindEnergia 29</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2632,1580 2562,1624 2566,1733 2658,1799 2746,1654"><title>SindEnergia 42</title></polygon></a>
-                        <polygon class="estande" points="2562,1740 2566,1889 2698,1889 2728,1845"><title>SindGrafica 41</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1vl2KuNI_FKjHKfUfJeeN6awIO0OzmNoF?usp=sharing"><polygon class="estande" points="2772,1763 2811,1697 2746,1658 2702,1723"><title>Cobamp 39</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1zkjfgkB1VXYFf0-ry08-IfuASeEGfZHV?usp=sharing"><polygon class="estande" points="2763,1776 2702,1724 2658,1794 2728,1842"><title>SindPneu 40</title></polygon></a>
-                        <polygon class="estande" points="2833,1512 2930,1517 2846,1661 2772,1613"><title>EnergiaLightcom 30</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2860,1259 3070,1124 3052,1093 2755,1097"><title>SindEnergia 19 20 21</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uf1PV8YKzWhyUxpZxS4M48WuEz8szpfl?usp=sharing"><polygon class="estande" points="2886,1302 2991,1468 3092,1468 3000,1328 3144,1232 3096,1166"><title>SindEnergia 22 23 24 26</title></polygon></a>
-                        <polygon class="estande" points="3004,1325 3140,1237 3157,1255 3162,1425 3092,1469"><title>Grupo Terlles 25</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1k86F3vThDPLEepa0Upi5xMz5YHBZR5EE?usp=sharing"><polygon class="estande" points="2986,1523 3092,1519 3000,1659 2930,1615"><title>Goodwe 31</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1Ct_Z1TrBGAw_1Viq6YPPG68H9y-4raZ9?usp=sharing"><polygon class="estande" points="2921,1617 3000,1661 2956,1726 2886,1682"><title>Lubtrol 35</title></polygon></a>
-                        <polygon class="estande" points="3092,1520 3162,1564 3157,1638 3057,1577"><title>Dislub 32A</title></polygon>
-                        <polygon class="estande" points="3052,1581 3030,1620 3000,1659 3148,1764 3157,1721 3157,1638"><title>Enie 32B</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1BRaXzC8t0zBRorUXLBBUr7fjaskTDOdh?usp=sharing"><polygon class="estande" points="3000,1663 3135,1751 3096,1825 2951,1729"><title>Energia Pecem 33 34</title></polygon></a>
-                        <polygon class="estande" points="2811,1801 2881,1840 2930,1770 2855,1726"><title>38</title></polygon>
-                        <polygon class="estande" points="2925,1773 3070,1861 3052,1891 2855,1887"><title>36</title></polygon>
-                        <polygon class="estande" points="2807,1801 2759,1888 2860,1888 2877,1836"><title>37</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1gBICofXNIbF9BDwfMnTdomogbDHImKpR?usp=sharing"><polygon class="estande" points="3100,1897 3205,1735 3232,1735 3363,1880"><title>Sesi/Senai</title></polygon></a>
-                        <polygon class="estande" points="3450,1194 3503,1063 3302,1094 3293,1124"><title>Frosty 01</title></polygon>
-                        <polygon class="estande" points="3599,1053 3494,1061 3477,1114 3555,1140"><title>Itaueira 02</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1vGOjBJJoRe7V0OAu1ikf8XlsZcJzq8zC?usp=sharing"><polygon class="estande" points="3555,1149 3525,1219 3450,1188 3477,1114"><title>Milk 03</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1lRJ4vqJRuTxeziXn6yrP-bEx2wYtU-z2?usp=sharing"><polygon class="estande" points="3350,1201 3319,1279 3240,1249 3275,1170"><title>Alimempro  12</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1FWE69FssQ4-Jgm8qgf4kPKv0FG5eHYoM?usp=sharing"><polygon class="estande" points="3411,1228 3389,1307 3315,1285 3350,1202"><title>Sindalimentos 13</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/13TG6Q2Yh65CK287jFVsZB8Gosveu57Ky?usp=sharing"><polygon class="estande" points="3420,1234 3503,1269 3464,1339 3389,1313"><title>Sindcafe 14</title></polygon></a>
-                        <polygon class="estande" points="3389,1313 3328,1466 3253,1431 3227,1273 3236,1243"><title>Betania 11</title></polygon>
-                        <polygon class="estande" points="3464,1346 3424,1447 3328,1460 3389,1316"><title>Diageo 10</title></polygon>
-                        <polygon class="estande" points="3499,1704 3376,1809 3297,1726 3271,1564 3332,1512"><title>M dias 51 52 53</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1AFIQq15xBlxlTVMBIa8XV-r_NNwMAQIh?usp=sharing"><polygon class="estande" points="3424,1502 3503,1590 3446,1638 3332,1511"><title>Dikoko 54</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/14jCDtWXR3gZXYJ4565Yn5GhoETLguICz?usp=sharing"><polygon class="estande" points="3507,1587 3560,1648 3499,1705 3442,1639"><title>LDB 50</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1vr_rDkwHumjlmVPBZ1RtgXR2j9RS0e5P?usp=sharing"><polygon class="estande" points="3599,1686 3726,1831 3429,1874 3407,1848"><title>SindPan 47 48 49</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/144LcokE-liVFrgw6mlgvL9uZojTITzsY?usp=sharing"><polygon class="estande" points="3660,1040 3792,1018 3818,1167 3639,1088"><title>SindLacticinios  04</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1T1ns61BOxmWCZB86Qd4_UNc95W0ukgGE?usp=sharing"><polygon class="estande" points="3630,1089 3713,1124 3674,1199 3604,1168"><title>Compex 07</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1aJim3BKnGbigVent_KEi9B2Ktm08GNrJ?usp=sharing"><polygon class="estande" points="3678,1202 3647,1267 3564,1246 3595,1176"><title>Especiarias da roca 06</title></polygon></a>
-                        <polygon class="estande" points="3713,1125 3814,1173 3831,1278 3766,1331 3647,1274"><title>SindSorvetes 05</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1J4QiOmL4FLYlL7jgLuCCJdypwzQ6xFPN?usp=sharing"><polygon class="estande" points="3625,1321 3547,1286 3485,1444 3582,1422"><title>Fluido 09</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1PNMONo59ds69sxAc3jraDZYOypdAfycw?usp=sharing"><polygon class="estande" points="3625,1331 3744,1374 3739,1396 3582,1423"><title>Netumar 08</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1uWJ4kmmjzzd3yv3fBlvzp9PAyYJRrmXY?usp=sharing"><polygon class="estande" points="3604,1619 3660,1563 3586,1475 3494,1493 3564,1571"><title>Samaria 55</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/18sen-LQ1s_yb8rG3WFImeqEAhg0FPQIc?usp=sharing"><polygon class="estande" points="3752,1445 3761,1472 3660,1559 3586,1476"><title>Serra Grande 56</title></polygon></a>
-                        <polygon class="estande" points="3700,1598 3752,1655 3687,1716 3630,1651"><title>Agromix 46</title></polygon>
-                        <a href="https://drive.google.com/drive/folders/1OFcpges2pbJ8HGbxbAeMADgerDSQkr86?usp=sharing"><polygon class="estande" points="3796,1512 3875,1538 3888,1652 3809,1722 3695,1599"><title>J Macedo 43</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1zq-NvecShSaC7KrWPOdtof_SPzhFWhMr?usp=sharing"><polygon class="estande" points="3958,1296 3884,1274 3866,1160 3941,1086 4059,1213"><title>IEL 18 Oeste</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/181ORvZLpEE7IYgPKX5oVYxJghrJFLlzm?usp=sharing"><polygon class="estande" points="3989,1338 4006,1360 4159,1334 4089,1242"><title>Maria Pitanga 28</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1TO44cinqiLUHRBgFY-g9l-iFVgfkff2J?usp=sharing"><polygon class="estande" points="4155,1124 4221,1067 4159,1005 4098,1058"><title>Grupo Souza Miranda 21</title></polygon></a>
-                        <polygon class="estande" points="3989,1479 3919,1532 3936,1632 4041,1680 4107,1527"><title>3 coracoes 42</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1gBICofXNIbF9BDwfMnTdomogbDHImKpR?usp=sharing"><polygon class="estande" points="4111,1543 4177,1565 4094,1766 3962,1783 3945,1639 4046,1683"><title>Sesi/Senai 39 40 41</title></polygon></a>
-                        <a href="https://drive.google.com/drive/folders/1paJeqT_F1-lf33Rn-sxeqw211A-AVuzJ?usp=sharing"><polygon class="estande" points="4330,1580 4361,1501 4278,1462 4256,1536"><title>Puro acai 35</title></polygon></a>
-                    </svg>
-                </div>
+        <div class="bg-white rounded shadow border-l-4 border-blue-600 mt-6">
+            <h3 class="font-bold text-lg p-4 border-b">Lista Geral</h3>
+            <div style="overflow-x: auto;">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="p-3">Estande</th>
+                            <th class="p-3">Produtor</th>
+                            <th class="p-3">Marcenaria</th>
+                            <th class="p-3 text-center">Status</th>
+                            <th class="p-3 text-right">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-estandes" class="divide-y"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -296,7 +342,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // VARIÁVEIS GLOBAIS
+        // VARIÁVEIS
         let DADOS = { estandes: {}, marcenarias: {} };
         let estandeAtual = null;
 
@@ -307,62 +353,73 @@
         const selectStatus = document.getElementById('select-status');
         const btnLink = document.getElementById('btn-link-externo');
         const listaMarcenarias = document.getElementById('lista-marcenarias');
+        const loadingDiv = document.getElementById('loading');
 
-        // --- SINCRONIZAÇÃO ---
+        // --- 1. SINCRONIZAÇÃO ---
         onValue(ref(db), (snapshot) => {
-            document.getElementById('loading').style.display = 'none';
+            loadingDiv.style.display = 'none';
             const val = snapshot.val();
             DADOS = val || { estandes: {}, marcenarias: {} };
             if (!DADOS.estandes) DADOS.estandes = {};
             if (!DADOS.marcenarias) DADOS.marcenarias = {};
-
+            
             atualizarTudo();
         });
 
+        // --- 2. ATUALIZAR TELA ---
         function atualizarTudo() {
-            // Atualiza lista de marcenarias no topo e no select
+            // Atualiza Listas de Marcenarias
             listaMarcenarias.innerHTML = '';
             selectMarcenaria.innerHTML = '<option value="">-- Selecione --</option>';
 
             for (const [nome, cor] of Object.entries(DADOS.marcenarias)) {
                 // No Topo
                 const tag = document.createElement('div');
-                tag.className = "flex items-center gap-1 bg-gray-100 border p-1 rounded";
-                tag.innerHTML = `<div class="w-3 h-3 rounded-full" style="background:${cor}"></div> ${nome} <span onclick="rmMarcenaria('${nome}')" class="text-red-500 cursor-pointer ml-1 font-bold">x</span>`;
+                tag.className = "flex items-center gap-1 bg-gray-100 border p-1 rounded hover:bg-gray-200";
+                tag.innerHTML = `<div class="w-3 h-3 rounded-full" style="background:${cor}"></div> ${nome} <span onclick="window.rmMarcenaria('${nome}')" class="text-red-500 cursor-pointer ml-1 font-bold">x</span>`;
                 listaMarcenarias.appendChild(tag);
 
-                // No Select
+                // No Select do Modal
                 const opt = document.createElement('option');
                 opt.value = nome;
                 opt.textContent = nome;
                 selectMarcenaria.appendChild(opt);
             }
 
-            // Atualiza cores do mapa
+            // Atualiza Mapa e Tabela
+            const tbody = document.getElementById('lista-estandes');
+            tbody.innerHTML = '';
+
             document.querySelectorAll('.estande').forEach(poly => {
                 const nome = poly.getAttribute('data-nome');
                 const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
                 const dados = DADOS.estandes[idSafe] || {};
-                
-                // Limpa classes antigas
+
+                // MAPA (Pintar)
                 poly.classList.remove('status-construido', 'status-em_construcao');
                 if (dados.status && dados.status !== 'nao_iniciado') {
                     poly.classList.add('status-' + dados.status);
                 }
-
-                // Aplica cor
+                
                 const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
-                if (cor) {
-                    poly.style.fill = cor;
-                    poly.style.fillOpacity = "0.6";
-                } else {
-                    poly.style.fill = "";
-                    poly.style.fillOpacity = "";
-                }
+                poly.style.fill = cor || "";
+                poly.style.fillOpacity = cor ? "0.6" : "";
+
+                // TABELA
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 border-b";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold">${nome}</td>
+                    <td class="p-3">${dados.produtor || '-'}</td>
+                    <td class="p-3 flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background:${cor || '#ccc'}"></div>${dados.marcenaria || '-'}</td>
+                    <td class="p-3 text-center">${dados.status || '-'}</td>
+                    <td class="p-3 text-right"><button class="text-blue-600 font-bold text-xs" onclick="focarNoMapa('${nome}')">EDITAR</button></td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        // --- AÇÕES ---
+        // --- 3. AÇÕES ---
         window.addMarcenaria = () => {
             const nome = document.getElementById('novo-nome').value.trim();
             const cor = document.getElementById('nova-cor').value;
@@ -385,16 +442,18 @@
             document.getElementById('modal-title').innerText = nome;
             inputProdutor.value = dados.produtor || '';
             selectStatus.value = dados.status || 'nao_iniciado';
-            selectMarcenaria.value = dados.marcenaria || '';
+            selectMarcenaria.value = dados.marcenaria || ''; // Puxa valor salvo
 
-            // Link logic
+            // Link do Drive (Procura 'a' pai)
             let link = null;
             let p = poly;
+            // Sobe 4 níveis buscando <a>
             for(let i=0; i<4; i++) {
-                if(p.tagName === 'A' || p.tagName === 'a') { link = p.href; break; }
+                if (p.tagName === 'A' || p.tagName === 'a') { link = p.href; break; }
                 p = p.parentNode;
+                if(!p) break;
             }
-            
+
             if(link) {
                 btnLink.href = link;
                 btnLink.classList.remove('hidden');
@@ -423,11 +482,28 @@
             window.fecharModal();
         };
 
-        // --- INIT ---
+        window.focarNoMapa = (nome) => {
+            const el = document.querySelector(`[data-nome="${nome}"]`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Efeito piscar
+                const old = el.style.stroke;
+                el.style.stroke = "red";
+                el.style.strokeWidth = "5px";
+                setTimeout(() => { 
+                    el.style.stroke = old; 
+                    el.style.strokeWidth = "";
+                }, 1000);
+                window.abrirModal(el);
+            }
+        };
+
+        // --- 4. START ---
         document.querySelectorAll('.estande').forEach(poly => {
             const title = poly.querySelector('title');
             if(title) poly.setAttribute('data-nome', title.textContent.trim());
             
+            // Clique direto no elemento
             poly.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
