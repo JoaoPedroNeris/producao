@@ -171,7 +171,7 @@
                     <polygon class="estande" points="3267,1589 3323,1641 3433,1519 3310,1414 3288,1444"><title>Acellormittal 11</title></polygon>
                     <a href="https://drive.google.com/drive/folders/10PY2vs8ird5Y927Oo7toCZt4lMApHJE9?usp=sharing"><polygon class="estande" points="3358,1347 3429,1408 3376,1465 3310,1408"><title>TotalDesign 12 </title></polygon></a>
                     <a href="https://drive.google.com/drive/folders/1a7vuUcSkchzVfbFDVjKNtDoVaf93z6J2?usp=sharing"><polygon class="estande" points="3367,1467 3490,1568 3547,1511 3424,1410"><title>Grupo 3G 13 14</title></polygon></a>
-                    <polygon class="estande" points="3433,1515 3494,1568 3420,1660 3328,1642"><title>`Br hidraulica 10</title></polygon>
+                    <polygon class="estande" points="3433,1515 3494,1568 3420,1660 3328,1642"><title>Br hidraulica 10</title></polygon>
                     <polygon class="estande" points="3240,1729 3315,1694 3420,1708 3490,1878 3262,1988 3218,1883"><title>Cemag 50 51 52 53 </title></polygon>
                     <polygon class="estande" points="3284,2026 3293,2056 3490,2083 3433,1960"><title>Central das correias 49</title></polygon>
                     <a href="https://drive.google.com/drive/folders/1vCjWd1-pXA-5UB3m1lZ6DJX4izSsSAp1?usp=sharing"><polygon class="estande" points="3507,1924 3542,2003 3464,2034 3433,1964"><title>Durametal 47</title></polygon></a>
@@ -183,7 +183,7 @@
                     <polygon class="estande" points="3787,1447 3871,1512 3853,1617 3774,1648 3678,1561"><title>Aco cearense 07</title></polygon>
                     <polygon class="estande" points="4120,1515 4050,1550 4015,1476 4085,1441"><title>Sindcarnauba 16</title></polygon>
                     <a href="https://drive.google.com/drive/folders/1jtXiPqMYBUCybcg6nG3H6II3sLCWgy6R?usp=sharing"><polygon class="estande" points="4124,1524 4159,1594 4081,1629 4046,1554"><title>Conexao brindes 17</title></polygon></a>
-                    <polygon class="estande" points="3984,1719 3989,1749 4238,1784 4173,1635"><title>Sesi/senai 27 28 </title></polygon>
+                    <polygon class="estande" points="3984,1719 3989,1749 4238,1784 4173,1635"><title>Sesi/senai 27 28 </title></polygon></a>
                     <a href="https://drive.google.com/drive/folders/1OuUG2nJsENEqoF9-Yu2j_-HJ4Ea3uh5V?usp=sharing"><polygon class="estande" points="4142,1825 4063,1903 3967,1816 3980,1794"><title>Netonda 29 </title></polygon></a>
                     <polygon class="estande" points="3936,1859 3862,1881 3840,1990 3923,2060 4032,1942"><title>Projeart 42</title></polygon>
                     <polygon class="estande" points="4093,1996 3953,2162 3818,2140 3848,1996 3927,2066 4036,1944"><title>Sindquimica 39 40 41</title></polygon>
@@ -283,245 +283,300 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mt-10">
-            <div class="bg-slate-800 p-4"><h2 class="text-white font-bold uppercase tracking-wide">📋 Tabela Geral</h2></div>
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <div class="bg-slate-800 p-4">
+                <h2 class="text-white font-bold uppercase tracking-wide flex items-center gap-2">
+                    📋 Lista Geral de Estandes
+                </h2>
+            </div>
             <div class="max-h-[500px] overflow-y-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500">Estande</th>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500">Produtor</th>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500">Marcenaria (Cor)</th>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500 text-center">Status</th>
-                            <th class="p-4 text-xs font-black uppercase text-slate-500 text-right">Ação</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 tracking-wider">Estande</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 tracking-wider">Produtor</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 tracking-wider">Marcenaria (Cor)</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 tracking-wider text-center">Status</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 tracking-wider text-right">Ação</th>
                         </tr>
                     </thead>
-                    <tbody id="lista-estandes" class="divide-y divide-slate-100 text-sm font-medium text-slate-600"></tbody>
+                    <tbody id="lista-estandes" class="divide-y divide-slate-100 text-sm font-medium text-slate-600">
+                        </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        // Importando as funções necessárias do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-        // --- 1. COLE SUA CONFIGURAÇÃO DO FIREBASE AQUI ---
+        // SUA CONFIGURAÇÃO DO FIREBASE (Copie e cole a sua aqui)
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY_AQUI",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            databaseURL: "https://SEU_PROJETO-default-rtdb.firebaseio.com",
-            projectId: "SEU_PROJETO_ID",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
+            apiKey: "AIzaSyCVbw_1Jl300_lOFBKGnRBa0Y-pptgMRe0",
+            authDomain: "fiec2025-fab88.firebaseapp.com",
+            databaseURL: "https://fiec2025-fab88-default-rtdb.firebaseio.com",
+            projectId: "fiec2025-fab88",
+            storageBucket: "fiec2025-fab88.firebasestorage.app",
+            messagingSenderId: "29657094856",
+            appId: "1:29657094856:web:c8a8e40aab6aa8722663fd",
+            measurementId: "G-KYLG954HLH"
         };
 
+        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- ESTADO GLOBAL ---
-        let DADOS = { estandes: {}, marcenarias: {} };
-        let estandeSelecionado = null;
+        // --- VARIÁVEIS GLOBAIS ---
+        let ESTADO = { estandes: {}, marcenarias: {} }; // Estado local sincronizado
+        let estandeSelecionado = null; 
 
-        // --- DOM ELEMENTS ---
-        const els = {
-            modal: document.getElementById('modal-edit'),
-            title: document.getElementById('modal-title'),
-            produtor: document.getElementById('input-produtor'),
-            marcenaria: document.getElementById('select-marcenaria'),
-            status: document.getElementById('select-status'),
-            linkBtn: document.getElementById('btn-link-externo'),
-            search: document.getElementById('search-input'),
-            tableBody: document.getElementById('lista-estandes'),
-            progress: document.getElementById('progress-bar'),
-            progressText: document.getElementById('progress-text'),
-            loading: document.getElementById('loading'),
-            marcenariaContainer: document.getElementById('lista-marcenarias-container')
-        };
+        const modal = document.getElementById('modal-edit');
+        const selectMarcenaria = document.getElementById('select-marcenaria');
+        const inputProdutor = document.getElementById('input-produtor');
+        const selectStatus = document.getElementById('select-status');
+        const modalTitle = document.getElementById('modal-title');
+        const btnLink = document.getElementById('btn-link-externo');
+        const searchInput = document.getElementById('search-input');
+        const tbody = document.getElementById('lista-estandes');
+        const containerMarcenarias = document.getElementById('lista-marcenarias-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const loadingOverlay = document.getElementById('loading');
 
-        // --- SYNC REALTIME ---
+        // --- SINCRONIZAÇÃO EM TEMPO REAL ---
         onValue(ref(db), (snapshot) => {
-            els.loading.style.display = 'none';
-            DADOS = snapshot.val() || { estandes: {}, marcenarias: {} };
+            const val = snapshot.val();
+            if (val) {
+                ESTADO = val;
+                if(!ESTADO.estandes) ESTADO.estandes = {};
+                if(!ESTADO.marcenarias) ESTADO.marcenarias = {};
+            } else {
+                ESTADO = { estandes: {}, marcenarias: {} };
+            }
             
-            // Corrige se estiver null no banco
-            if (!DADOS.estandes) DADOS.estandes = {};
-            if (!DADOS.marcenarias) DADOS.marcenarias = {};
-
-            renderizarMarcenarias();
-            renderizarMapaETabela();
+            // Remove tela de carregamento se existir
+            if(loadingOverlay) loadingOverlay.style.display = 'none';
+            
+            atualizarInterfaceCompleta();
         });
 
-        // --- RENDERIZAÇÃO ---
-        function renderizarMarcenarias() {
-            els.marcenariaContainer.innerHTML = '';
-            els.marcenaria.innerHTML = '<option value="">-- Selecione --</option>';
+        // --- FUNÇÕES DE INICIALIZAÇÃO ---
+        function init() {
+            // 1. Configurar cada polígono SVG
+            document.querySelectorAll('.estande').forEach(poly => {
+                const titleEl = poly.querySelector('title');
+                if (!titleEl) return;
 
-            for (const [nome, cor] of Object.entries(DADOS.marcenarias)) {
-                // UI de Cadastro
-                els.marcenariaContainer.innerHTML += `
-                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600">
-                        <div class="w-4 h-4 rounded-full border border-slate-300" style="background-color: ${cor}"></div>
-                        ${nome}
-                        <button class="text-red-400 hover:text-red-600 ml-1 font-bold" onclick="window.deletarMarcenaria('${nome}')">×</button>
-                    </div>`;
+                const nomeEstande = titleEl.textContent.trim();
+                poly.setAttribute('data-nome', nomeEstande);
                 
+                poly.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+                    abrirModal(poly);
+                });
+            });
+
+            // 2. Busca
+            searchInput.addEventListener('input', (e) => filtrarTudo(e.target.value));
+        }
+
+        // --- FUNÇÕES DE UI (Renderização) ---
+        function atualizarInterfaceCompleta() {
+            renderizarMarcenarias();
+            renderizarMapaETabela();
+        }
+
+        function renderizarMarcenarias() {
+            containerMarcenarias.innerHTML = '';
+            selectMarcenaria.innerHTML = '<option value="">-- Selecione a Marcenaria --</option>'; 
+
+            const lista = ESTADO.marcenarias;
+            if(Object.keys(lista).length === 0) {
+                containerMarcenarias.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhuma marcenaria cadastrada.</p>';
+                return;
+            }
+
+            for (const [nome, cor] of Object.entries(lista)) {
+                // Visual
+                const tag = document.createElement('div');
+                tag.className = "flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600";
+                tag.innerHTML = `
+                    <div class="w-4 h-4 rounded-full border border-slate-300" style="background-color: ${cor}"></div>
+                    ${nome}
+                    <button class="text-red-400 hover:text-red-600 ml-1" onclick="window.removerMarcenaria('${nome}')">×</button>
+                `;
+                containerMarcenarias.appendChild(tag);
+
                 // Select Modal
-                const opt = document.createElement('option');
-                opt.value = nome;
-                opt.textContent = nome;
-                els.marcenaria.appendChild(opt);
+                const option = document.createElement('option');
+                option.value = nome;
+                option.textContent = nome;
+                selectMarcenaria.appendChild(option);
             }
         }
 
         function renderizarMapaETabela() {
+            tbody.innerHTML = '';
             let total = 0, concluidos = 0;
-            els.tableBody.innerHTML = '';
+            const cores = ESTADO.marcenarias;
 
+            // Percorre todos os estandes do DOM (SVG)
             document.querySelectorAll('.estande').forEach(poly => {
                 const nome = poly.getAttribute('data-nome');
-                const dados = DADOS.estandes[nome] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
+                const dados = ESTADO.estandes[nome] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
                 
-                // --- MAPA ---
-                // 1. Status (Borda)
-                poly.classList.remove('status-construido', 'status-em_construcao', 'status-nao_iniciado');
-                poly.classList.add(dados.status ? `status-${dados.status}` : 'status-nao_iniciado');
+                // ATUALIZA MAPA
+                aplicarEstiloVisual(poly, dados);
 
-                // 2. Cor (Marcenaria)
-                const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
-                poly.style.fill = cor || "";
-                poly.style.fillOpacity = cor ? "0.6" : "";
-
-                // --- TABELA ---
+                // DADOS PARA TABELA
                 total++;
-                if (dados.status === 'construido') concluidos++;
+                if(dados.status === 'construido') concluidos++;
 
-                let badgeClass = 'bg-slate-100 text-slate-500';
+                let badgeClass = 'bg-slate-100 text-slate-500 border-slate-200';
                 let badgeText = 'Não Iniciado';
-                if (dados.status === 'construido') { badgeClass = 'bg-green-100 text-green-700'; badgeText = 'Pronto'; }
-                else if (dados.status === 'em_construcao') { badgeClass = 'bg-orange-100 text-orange-700'; badgeText = 'Obras'; }
 
-                const corHex = cor || '#cbd5e1';
-                
+                if (dados.status === 'construido') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; badgeText = 'Pronto'; }
+                else if (dados.status === 'em_construcao') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; badgeText = 'Em Obras'; }
+
+                const corHex = (dados.marcenaria && cores[dados.marcenaria]) ? cores[dados.marcenaria] : '#cbd5e1';
+                const indicadorCor = `<div class="w-3 h-3 rounded-full mr-2 inline-block border border-slate-300" style="background:${corHex}"></div>`;
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-indigo-50 transition cursor-pointer group border-b border-slate-50";
-                tr.onclick = () => focarNoMapa(nome);
                 tr.innerHTML = `
                     <td class="p-4 font-bold text-slate-700">${nome}</td>
                     <td class="p-4 text-slate-500">${dados.produtor || '-'}</td>
-                    <td class="p-4 text-slate-600 flex items-center">
-                        <span class="inline-block w-3 h-3 rounded-full mr-2 shadow-sm" style="background:${corHex}"></span>
-                        ${dados.marcenaria || '-'}
-                    </td>
+                    <td class="p-4 text-slate-600 flex items-center">${indicadorCor} ${dados.marcenaria || '-'}</td>
                     <td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border ${badgeClass}">${badgeText}</span></td>
                     <td class="p-4 text-right"><span class="text-indigo-600 text-xs font-bold uppercase opacity-0 group-hover:opacity-100">Editar</span></td>
                 `;
-                els.tableBody.appendChild(tr);
+                
+                tr.addEventListener('click', () => {
+                    poly.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Highlight effect
+                    const originalStroke = poly.style.stroke;
+                    poly.style.stroke = "#4f46e5";
+                    poly.style.strokeWidth = "10px";
+                    setTimeout(() => { 
+                        poly.style.stroke = originalStroke; 
+                        poly.style.strokeWidth = "";
+                    }, 1500);
+                    abrirModal(poly);
+                });
+
+                tbody.appendChild(tr);
             });
 
-            // Progresso
+            // Atualiza Progresso
             const p = total > 0 ? Math.round((concluidos / total) * 100) : 0;
-            els.progress.style.width = p + '%';
-            els.progressText.innerText = p + '%';
-
-            filtrarBusca(els.search.value);
+            progressBar.style.width = p + '%';
+            progressText.innerText = p + '%';
+            
+            filtrarTudo(searchInput.value);
         }
 
-        // --- FUNÇÕES DE CRUD (FIREBASE) ---
-        window.salvarEstande = () => {
-            if (!estandeSelecionado) return;
-            const nome = estandeSelecionado.getAttribute('data-nome');
-            set(ref(db, 'estandes/' + nome), {
-                produtor: els.produtor.value,
-                marcenaria: els.marcenaria.value,
-                status: els.status.value
-            });
-            fecharModal();
-        };
+        function aplicarEstiloVisual(poly, dados) {
+            // 1. Status (Borda)
+            poly.classList.remove('status-construido', 'status-em_construcao', 'status-nao_iniciado');
+            if (dados.status) poly.classList.add('status-' + dados.status);
+            else poly.classList.add('status-nao_iniciado');
 
-        window.limparEstandeIndividual = () => {
-            if (!estandeSelecionado) return;
-            if(confirm('Limpar dados deste estande?')) {
-                const nome = estandeSelecionado.getAttribute('data-nome');
-                remove(ref(db, 'estandes/' + nome));
-                fecharModal();
+            // 2. Cor (Marcenaria)
+            const listaCores = ESTADO.marcenarias;
+            if (dados.marcenaria && listaCores[dados.marcenaria]) {
+                poly.style.fill = listaCores[dados.marcenaria];
+                poly.style.fillOpacity = "0.6"; 
+            } else {
+                poly.style.fill = ""; 
+                poly.style.fillOpacity = "";
             }
-        };
+        }
 
+        // --- AÇÕES DO USUÁRIO (Expostas para o HTML) ---
         window.adicionarMarcenaria = () => {
             const nome = document.getElementById('novo-nome-marcenaria').value.trim();
             const cor = document.getElementById('nova-cor-marcenaria').value;
-            if(!nome) return alert("Nome obrigatório");
+            if(!nome) return alert('Digite o nome da marcenaria!');
+            
             set(ref(db, 'marcenarias/' + nome), cor);
             document.getElementById('novo-nome-marcenaria').value = '';
         };
 
-        window.deletarMarcenaria = (nome) => {
-            if(confirm(`Apagar marcenaria ${nome}?`)) remove(ref(db, 'marcenarias/' + nome));
-        };
-
-        window.resetarDados = () => {
-            if(confirm("ATENÇÃO: ISSO APAGARÁ TUDO!")) set(ref(db), { estandes: {}, marcenarias: {} });
-        };
-
-        // --- INTERAÇÕES ---
-        document.querySelectorAll('.estande').forEach(poly => {
-            // Inicialização dos nomes
-            const titleEl = poly.querySelector('title');
-            if (titleEl) poly.setAttribute('data-nome', titleEl.textContent.trim());
-
-            poly.addEventListener('click', (e) => {
-                e.preventDefault(); e.stopPropagation();
-                estandeSelecionado = poly;
-                const nome = poly.getAttribute('data-nome');
-                const dados = DADOS.estandes[nome] || {};
-
-                els.title.innerText = nome;
-                els.produtor.value = dados.produtor || '';
-                els.marcenaria.value = dados.marcenaria || '';
-                els.status.value = dados.status || 'nao_iniciado';
-
-                const linkPai = poly.closest('a');
-                if (linkPai && linkPai.href) { els.linkBtn.href = linkPai.href; els.linkBtn.classList.remove('hidden'); }
-                else els.linkBtn.classList.add('hidden');
-
-                els.modal.classList.remove('hidden');
-            });
-        });
-
-        window.fecharModal = () => els.modal.classList.add('hidden');
-        document.getElementById('btn-close-modal').onclick = fecharModal;
-        document.getElementById('btn-cancelar').onclick = fecharModal;
-        document.getElementById('btn-salvar').onclick = window.salvarEstande;
-        document.getElementById('btn-limpar').onclick = window.limparEstandeIndividual;
-        document.getElementById('btn-add-marcenaria').onclick = window.adicionarMarcenaria;
-        document.getElementById('btn-exportar').onclick = exportarXLS;
-        
-        window.focarNoMapa = (nome) => {
-            const el = document.querySelector(`[data-nome="${nome}"]`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Simula clique
-                el.dispatchEvent(new Event('click'));
+        window.removerMarcenaria = (nome) => {
+            if(confirm(`Remover marcenaria "${nome}"?`)) {
+                remove(ref(db, 'marcenarias/' + nome));
             }
         };
 
-        // Busca
-        els.search.addEventListener('input', (e) => filtrarBusca(e.target.value));
-
-        function filtrarBusca(t) {
-            t = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        window.abrirModal = (poly) => {
+            estandeSelecionado = poly;
+            const nome = poly.getAttribute('data-nome');
+            const dados = ESTADO.estandes[nome] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
             
-            // Mapa
+            modalTitle.innerText = nome;
+            inputProdutor.value = dados.produtor || ''; 
+            selectMarcenaria.value = dados.marcenaria || ''; 
+            selectStatus.value = dados.status || 'nao_iniciado';
+
+            const linkPai = poly.closest('a');
+            if (linkPai && linkPai.href) {
+                btnLink.href = linkPai.href;
+                btnLink.classList.remove('hidden');
+            } else {
+                btnLink.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        window.fecharModal = () => {
+            modal.classList.add('hidden');
+            estandeSelecionado = null;
+        };
+
+        window.limparEstandeIndividual = () => {
+            if (!estandeSelecionado) return;
+            const nome = estandeSelecionado.getAttribute('data-nome');
+            if(confirm(`Limpar dados de ${nome}?`)) {
+                remove(ref(db, 'estandes/' + nome));
+                window.fecharModal();
+            }
+        };
+
+        window.salvarEstande = () => {
+            if (!estandeSelecionado) return;
+            const nome = estandeSelecionado.getAttribute('data-nome');
+            const novosDados = {
+                produtor: inputProdutor.value,
+                marcenaria: selectMarcenaria.value,
+                status: selectStatus.value
+            };
+            set(ref(db, 'estandes/' + nome), novosDados);
+            window.fecharModal();
+        };
+
+        window.resetarDados = () => {
+            if(confirm("ATENÇÃO: ISSO APAGARÁ TUDO NO SERVIDOR! Continuar?")) {
+                set(ref(db), { estandes: {}, marcenarias: {} });
+            }
+        };
+
+        // --- BUSCA ---
+        function filtrarTudo(termo) {
+            const t = termo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
             document.querySelectorAll('.estande').forEach(poly => {
                 const nome = poly.getAttribute('data-nome');
-                const dados = DADOS.estandes[nome] || {};
-                const text = `${nome} ${dados.produtor} ${dados.marcenaria}`.toLowerCase();
-                
+                const dados = ESTADO.estandes[nome] || {};
+                const fullText = `${nome} ${dados.produtor || ''} ${dados.marcenaria || ''}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
                 if (t === "") {
                     poly.classList.remove('estande-dimmed', 'estande-match');
-                } else if (text.includes(t)) {
+                } else if (fullText.includes(t)) {
                     poly.classList.add('estande-match');
                     poly.classList.remove('estande-dimmed');
                 } else {
@@ -530,23 +585,33 @@
                 }
             });
 
-            // Tabela
-            Array.from(els.tableBody.rows).forEach(tr => {
-                const text = tr.innerText.toLowerCase();
-                tr.style.display = text.includes(t) ? '' : 'none';
+            Array.from(tbody.rows).forEach(tr => {
+                const textoRow = tr.innerText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                tr.style.display = textoRow.includes(t) ? '' : 'none';
             });
         }
 
         window.exportarXLS = () => {
             let csv = '\uFEFFEstande;Produtor;Marcenaria;Status\n'; 
-            for (const [id, dados] of Object.entries(DADOS.estandes)) {
-                csv += `${id};${dados.produtor};${dados.marcenaria};${dados.status}\n`;
-            }
+            // Usa os dados do ESTADO sincronizado
+            document.querySelectorAll('.estande').forEach(poly => {
+                const nome = poly.getAttribute('data-nome');
+                const dados = ESTADO.estandes[nome] || { produtor: '', marcenaria: '', status: '' };
+                csv += `${nome};${dados.produtor};${dados.marcenaria};${dados.status}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = "Relatorio_Online.csv";
+            link.href = URL.createObjectURL(blob);
+            link.download = "Relatorio_Montagem.csv";
             link.click();
         };
+
+        // Attach listeners globally needed for HTML onclicks
+        window.abrirModal = abrirModal; // Re-bind just in case
+
+        // Start
+        init();
+
     </script>
 </body>
 </html>
