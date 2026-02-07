@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gestão FIE 2025 - Oficial</title>
+    <title>Gestão FIE 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        /* --- MAPA E CLIQUES --- */
+        /* MAPA */
         .estande { 
             fill: rgba(255, 255, 255, 0.5); 
             cursor: pointer; 
             transition: all 0.2s ease; 
             stroke-width: 2px; 
             stroke: #94a3b8; 
-            pointer-events: auto; /* Garante que o clique funcione */
+            pointer-events: auto; 
         }
-        
         .estande:hover { 
             stroke-width: 8px !important; 
             stroke: #2563eb !important; 
@@ -23,17 +22,16 @@
             z-index: 100;
         }
         
-        /* STATUS (Cores das Bordas) */
-        .status-construido { stroke: #16a34a !important; stroke-width: 5px; } /* Verde */
-        .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; } /* Laranja */
-        
-        /* UTILITÁRIOS */
+        /* STATUS */
+        .status-construido { stroke: #16a34a !important; stroke-width: 5px; } 
+        .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; }
+        .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; }
+
+        /* UTIL */
         .estande-match { stroke: #000 !important; stroke-width: 10px !important; fill-opacity: 1 !important; z-index: 50; }
         .estande-dimmed { opacity: 0.15; }
-        
         .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #475569; }
         
-        /* LAYOUT RESPONSIVO COM SCROLL */
         .map-scroll-container {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
@@ -44,32 +42,32 @@
             max-height: 80vh;
         }
 
-        /* ANIMAÇÃO MODAL */
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .anim-modal { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* MODAL ANIMATION */
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .anim-modal { animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans text-slate-800 pb-24">
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 pb-20">
 
     <div id="loading" class="loading-overlay">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span>Conectando ao Banco de Dados...</span>
+        <span>Carregando Sistema...</span>
     </div>
 
     <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal border border-white/20">
             <div class="bg-blue-900 p-4 text-white flex justify-between items-center">
                 <div>
-                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Gerenciar Estande</span>
+                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Editar Estande</span>
                     <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">...</h3>
                 </div>
-                <button onclick="fecharModal()" class="text-white/70 hover:text-white text-3xl p-2 cursor-pointer">&times;</button>
+                <button onclick="window.fecharModal()" class="text-white/70 hover:text-white text-3xl p-2 cursor-pointer">&times;</button>
             </div>
             
             <div class="p-5 space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Produtor</label>
-                    <input type="text" id="input-produtor" placeholder="Digite o nome..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500 transition">
+                    <input type="text" id="input-produtor" placeholder="Digite o nome..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                 </div>
 
                 <div>
@@ -77,10 +75,9 @@
                     <div class="relative">
                         <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none h-12">
                             <option value="">-- Sem Marcenaria --</option>
-                            </select>
+                        </select>
                         <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
                     </div>
-                    <p class="text-[10px] text-blue-600 mt-1 font-bold">💡 Cadastre novas equipes no painel superior.</p>
                 </div>
                 
                 <div>
@@ -100,15 +97,14 @@
                 </a>
 
                 <div class="flex gap-3 pt-2 border-t border-slate-100 mt-2">
-                    <button onclick="limparEstandeIndividual()" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition cursor-pointer" title="Limpar">🗑️</button>
-                    <button onclick="salvarEstande()" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg shadow-green-200 transition active:scale-95 cursor-pointer">CONFIRMAR</button>
+                    <button onclick="window.limparEstandeIndividual()" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition cursor-pointer" title="Limpar">🗑️</button>
+                    <button onclick="window.salvarEstande()" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg transition active:scale-95 cursor-pointer">CONFIRMAR</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="w-full px-2 md:px-8 pb-10 space-y-6">
-        
         <div class="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-b-2xl shadow-sm border-x border-b border-slate-200 sticky top-0 z-40">
             <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
                 <h1 class="text-xl md:text-2xl font-black text-slate-800 uppercase italic tracking-tighter">FIE 2025</h1>
@@ -120,27 +116,25 @@
                 </div>
             </div>
             <div class="flex w-full md:w-auto gap-2">
-                <button onclick="exportarXLS()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 cursor-pointer">Excel</button>
-                <button onclick="resetarDados()" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 cursor-pointer">Reset</button>
+                <button onclick="window.exportarXLS()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 cursor-pointer">Excel</button>
+                <button onclick="window.resetarDados()" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 cursor-pointer">Reset</button>
             </div>
         </div>
 
         <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
-            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria (Cor)</h3>
+            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria</h3>
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex gap-2 w-full md:w-1/3">
                     <input type="text" id="novo-nome-marcenaria" placeholder="Nome da Marcenaria" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500">
                     <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-10 w-12 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0">
-                    <button onclick="adicionarMarcenaria()" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900 cursor-pointer">+ Criar</button>
+                    <button onclick="window.adicionarMarcenaria()" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900 cursor-pointer">+ Criar</button>
                 </div>
-                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full">
-                    <span class="text-xs text-slate-400 italic py-2">Cadastre aqui para liberar as cores na janela.</span>
-                </div>
+                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full"></div>
             </div>
         </div>
 
         <div class="relative">
-            <input type="text" id="search-input" placeholder="🔍 Buscar estande, produtor ou marcenaria..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="search-input" placeholder="🔍 Buscar..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <div class="space-y-2">
@@ -167,7 +161,7 @@
                         <polygon class="estande" points="1582,1458 1735,1642 1796,1589 1770,1432 1700,1349"><title>Sesi/Senai Moda 13 14 17</title></polygon>
                         <a href="https://drive.google.com/drive/folders/12f7NIkhxXRLEg7KEEl04tKlX22_eAey1?usp=sharing"><polygon class="estande" points="1744,1694 1814,1724 1849,1882 1827,1917 1687,1838"><title>Sindi Industria 25</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/11zG1mxlgR3bFdGbx5ZS23J_ON4Qw2eT-?usp=sharing"><polygon class="estande" points="1761,1878 1831,1904 1800,1983 1726,1952"><title>Clipper 26</title></polygon></a>
-                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai</title></polygon>
+                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai Leste</title></polygon>
                         <polygon class="estande" points="2216,1260 2151,1383 2011,1291 2024,1260"><title>Apodi</title></polygon>
                         <polygon class="estande" points="2085,1628 1989,1628 1923,1584 1923,1422 1984,1330 2190,1462"><title>Sinduscon 10 11 12 13 14</title></polygon>
                         <polygon class="estande" points="1945,1900 1923,1870 1923,1721 1993,1677 2076,1817"><title>`Rejuntamix 53</title></polygon>
@@ -323,7 +317,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // CONFIGURAÇÃO
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyCVbw_1Jl300_lOFBKGnRBa0Y-pptgMRe0",
             authDomain: "fiec2025-fab88.firebaseapp.com",
@@ -342,7 +336,7 @@
         let DADOS = { estandes: {}, marcenarias: {} };
         let estandeSelecionado = null;
 
-        // ELEMENTOS DOM
+        // ELEMENTOS DO DOM
         const els = {
             modal: document.getElementById('modal-edit'),
             title: document.getElementById('modal-title'),
@@ -438,12 +432,14 @@
             renderizarMarcenarias(); 
             els.marcenaria.value = dados.marcenaria || ''; 
 
-            // Link Logic
+            // Link Logic (Robust closest 'a')
             let link = null;
             let current = poly;
+            // Sobe até 4 níveis buscando <a>. Aumentei para 4 para garantir.
             for(let i=0; i<4; i++) {
                 if (current.tagName === 'A' || current.tagName === 'a') {
-                    link = current.href;
+                    // Tenta pegar href ou xlink:href (para compatibilidade com SVGs antigos)
+                    link = current.getAttribute('href') || current.getAttribute('xlink:href');
                     break;
                 }
                 current = current.parentNode;
@@ -457,6 +453,7 @@
             } else {
                 els.linkBtn.classList.add('hidden');
                 els.linkBtn.classList.remove('flex');
+                els.linkBtn.href = '#'; // Reseta o link para evitar comportamentos estranhos
             }
 
             els.modal.classList.remove('hidden');
