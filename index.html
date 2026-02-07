@@ -6,36 +6,32 @@
     <title>Gestão FIE 2025</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        /* --- ESTILOS DO MAPA --- */
+        /* MAPA */
         .estande { 
             fill: rgba(255, 255, 255, 0.5); 
             cursor: pointer; 
             transition: all 0.2s ease; 
-            stroke-width: 2px;
+            stroke-width: 2px; 
             stroke: #94a3b8; 
-            pointer-events: auto; /* Garante o clique */
+            pointer-events: auto; 
         }
-        
         .estande:hover { 
-            filter: brightness(0.9) contrast(1.2);
             stroke-width: 8px !important; 
-            stroke: #2563eb !important;
-            z-index: 100;
+            stroke: #2563eb !important; 
+            z-index: 50; 
+            filter: brightness(0.9);
         }
         
-        /* STATUS (BORDAS) */
+        /* STATUS */
         .status-construido { stroke: #16a34a !important; stroke-width: 5px; } 
         .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; }
         .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; }
 
-        /* UTILITÁRIOS */
+        /* UTIL */
         .estande-match { stroke: #000 !important; stroke-width: 10px !important; fill-opacity: 1 !important; z-index: 50; }
         .estande-dimmed { opacity: 0.15; }
-        
-        /* LOADING */
         .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #475569; }
         
-        /* SCROLL E MODAL */
         .map-scroll-container {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
@@ -45,7 +41,8 @@
             position: relative;
             max-height: 80vh;
         }
-        
+
+        /* MODAL ANIMATION */
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .anim-modal { animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
@@ -54,31 +51,31 @@
 
     <div id="loading" class="loading-overlay">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span>Carregando Dados...</span>
+        <span>Carregando Sistema...</span>
     </div>
 
-    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal border border-white/20">
             <div class="bg-blue-900 p-4 text-white flex justify-between items-center">
                 <div>
-                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Gerenciar Estande</span>
-                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">ID</h3>
+                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Editar Estande</span>
+                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">...</h3>
                 </div>
-                <button id="btn-close-modal" class="text-white/70 hover:text-white text-3xl p-2">&times;</button>
+                <button id="btn-close-x" class="text-white/70 hover:text-white text-3xl p-2">&times;</button>
             </div>
             
             <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor / Responsável</label>
-                    <input type="text" id="input-produtor" placeholder="Nome do Produtor..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500 transition shadow-sm">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Produtor</label>
+                    <input type="text" id="input-produtor" placeholder="Digite o nome..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Define a Cor)</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Cor)</label>
                     <div class="relative">
-                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none focus:border-blue-500 h-12">
-                            <option value="">-- Selecione a Marcenaria --</option>
-                            </select>
+                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none h-12">
+                            <option value="">-- Sem Marcenaria --</option>
+                        </select>
                         <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
                     </div>
                 </div>
@@ -96,24 +93,21 @@
                 </div>
 
                 <a id="btn-link-externo" href="#" target="_blank" class="hidden flex items-center justify-center gap-2 w-full py-4 bg-cyan-50 text-cyan-700 rounded-xl border-2 border-cyan-100 font-black text-xs uppercase hover:bg-cyan-100 transition shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                    ACESSAR PASTA DRIVE
+                    📂 ACESSAR PASTA DRIVE
                 </a>
 
                 <div class="flex gap-3 pt-2 border-t border-slate-100 mt-2">
-                    <button id="btn-limpar" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition" title="Limpar">🗑️</button>
-                    <button id="btn-salvar" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg shadow-green-200 transition tracking-wide active:scale-95">CONFIRMAR</button>
+                    <button id="btn-limpar-estande" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition">🗑️</button>
+                    <button id="btn-salvar-estande" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg transition active:scale-95">CONFIRMAR</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="w-full px-2 md:px-8 pb-10 space-y-6">
-        
         <div class="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-b-2xl shadow-sm border-x border-b border-slate-200 sticky top-0 z-40">
             <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
                 <h1 class="text-xl md:text-2xl font-black text-slate-800 uppercase italic tracking-tighter">FIE 2025</h1>
-                
                 <div class="flex items-center gap-2 w-full md:w-auto bg-slate-50 px-3 py-1 rounded-full border border-slate-200">
                     <div class="w-24 md:w-32 bg-slate-200 h-2 rounded-full overflow-hidden">
                         <div id="progress-bar" class="bg-green-500 h-full w-0 transition-all duration-700"></div>
@@ -121,7 +115,6 @@
                     <span id="progress-text" class="text-xs font-black text-green-600">0%</span>
                 </div>
             </div>
-
             <div class="flex w-full md:w-auto gap-2">
                 <button id="btn-exportar" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 transition">Excel</button>
                 <button id="btn-resetar" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 transition">Reset</button>
@@ -129,29 +122,26 @@
         </div>
 
         <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
-            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria (Cor)</h3>
-            
+            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria</h3>
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex gap-2 w-full md:w-1/3">
                     <input type="text" id="novo-nome-marcenaria" placeholder="Nome da Marcenaria" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500">
                     <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-10 w-12 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0">
                     <button id="btn-add-marcenaria" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900">+ Criar</button>
                 </div>
-                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full">
-                    <span class="text-xs text-slate-400 italic py-2">Cadastre uma marcenaria para começar a colorir.</span>
-                </div>
+                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full"></div>
             </div>
         </div>
 
         <div class="relative">
-            <input type="text" id="search-input" placeholder="🔍 Buscar estande, produtor ou marcenaria..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="search-input" placeholder="🔍 Buscar..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <div class="space-y-2">
             <h2 class="text-lg font-black text-blue-800 border-l-4 border-blue-600 pl-3">📍 Pavilhão Leste</h2>
             <div class="map-scroll-container shadow-xl">
                 <div class="min-w-[1000px] md:min-w-full relative group">
-                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="w-full h-auto block opacity-60">
+                    <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0002.jpg" class="w-full h-auto block opacity-60 pointer-events-none relative z-0">
                     <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
                         <polygon class="estande" points="903,1596 982,1622 1048,1478 973,1443"><title>Pena 02 03</title></polygon>
                         <a href="https://drive.google.com/drive/folders/1UQl3ZFZRBQuzyzdNShfngPbshaTr7Z8G?usp=sharing"><polygon class="estande" points="1122,1378 991,1391 969,1439 1148,1514"><title>Grendene 04</title></polygon></a>
@@ -171,7 +161,7 @@
                         <polygon class="estande" points="1582,1458 1735,1642 1796,1589 1770,1432 1700,1349"><title>Sesi/Senai Moda 13 14 17</title></polygon>
                         <a href="https://drive.google.com/drive/folders/12f7NIkhxXRLEg7KEEl04tKlX22_eAey1?usp=sharing"><polygon class="estande" points="1744,1694 1814,1724 1849,1882 1827,1917 1687,1838"><title>Sindi Industria 25</title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/11zG1mxlgR3bFdGbx5ZS23J_ON4Qw2eT-?usp=sharing"><polygon class="estande" points="1761,1878 1831,1904 1800,1983 1726,1952"><title>Clipper 26</title></polygon></a>
-                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai Leste</title></polygon>
+                        <polygon class="estande" points="1962,1270 1709,1279 1796,1384 1905,1379"><title>Sesi/senai</title></polygon>
                         <polygon class="estande" points="2216,1260 2151,1383 2011,1291 2024,1260"><title>Apodi</title></polygon>
                         <polygon class="estande" points="2085,1628 1989,1628 1923,1584 1923,1422 1984,1330 2190,1462"><title>Sinduscon 10 11 12 13 14</title></polygon>
                         <polygon class="estande" points="1945,1900 1923,1870 1923,1721 1993,1677 2076,1817"><title>`Rejuntamix 53</title></polygon>
@@ -304,30 +294,30 @@
             </div>
         </div>
 
-        <div class="bg-white rounded shadow border-l-4 border-blue-600 mt-6">
-            <h3 class="font-bold text-lg p-4 border-b">Lista Geral</h3>
-            <div style="overflow-x: auto;">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mt-10">
+            <div class="bg-slate-800 p-4"><h2 class="text-white font-bold uppercase tracking-wide">📋 Lista Geral</h2></div>
+            <div class="max-h-[500px] overflow-y-auto overflow-x-auto">
+                <table class="w-full text-left min-w-[600px]">
+                    <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th class="p-3">Estande</th>
-                            <th class="p-3">Produtor</th>
-                            <th class="p-3">Marcenaria</th>
-                            <th class="p-3 text-center">Status</th>
-                            <th class="p-3 text-right">Ação</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500">Estande</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500">Produtor</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500">Marcenaria</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 text-center">Status</th>
+                            <th class="p-4 text-xs font-black uppercase text-slate-500 text-right">Ação</th>
                         </tr>
                     </thead>
-                    <tbody id="lista-estandes" class="divide-y"></tbody>
+                    <tbody id="lista-estandes" class="divide-y divide-slate-100 text-sm font-medium text-slate-600"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // FIREBASE CONFIG
+        // FIREBASE CONFIG (SUA CHAVE)
         const firebaseConfig = {
             apiKey: "AIzaSyCVbw_1Jl300_lOFBKGnRBa0Y-pptgMRe0",
             authDomain: "fiec2025-fab88.firebaseapp.com",
@@ -342,9 +332,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // VARIÁVEIS
+        // ESTADO GLOBAL
         let DADOS = { estandes: {}, marcenarias: {} };
-        let estandeAtual = null;
+        let estandeSelecionado = null;
 
         // ELEMENTOS
         const modal = document.getElementById('modal-edit');
@@ -354,68 +344,73 @@
         const btnLink = document.getElementById('btn-link-externo');
         const listaMarcenarias = document.getElementById('lista-marcenarias');
         const loadingDiv = document.getElementById('loading');
+        const tableBody = document.getElementById('lista-estandes');
 
-        // --- 1. SINCRONIZAÇÃO ---
+        // --- 1. SINCRONIZAÇÃO FIREBASE ---
         onValue(ref(db), (snapshot) => {
             loadingDiv.style.display = 'none';
             const val = snapshot.val();
             DADOS = val || { estandes: {}, marcenarias: {} };
-            if (!DADOS.estandes) DADOS.estandes = {};
-            if (!DADOS.marcenarias) DADOS.marcenarias = {};
             
-            atualizarTudo();
+            // Garante objetos vazios se null
+            if(!DADOS.estandes) DADOS.estandes = {};
+            if(!DADOS.marcenarias) DADOS.marcenarias = {};
+
+            atualizarTela();
         });
 
         // --- 2. ATUALIZAR TELA ---
-        function atualizarTudo() {
-            // Atualiza Listas de Marcenarias
+        function atualizarTela() {
+            // A. Atualizar lista de marcenarias
             listaMarcenarias.innerHTML = '';
             selectMarcenaria.innerHTML = '<option value="">-- Selecione --</option>';
 
-            for (const [nome, cor] of Object.entries(DADOS.marcenarias)) {
-                // No Topo
+            for(const [nome, cor] of Object.entries(DADOS.marcenarias)) {
+                // Lista no topo
                 const tag = document.createElement('div');
-                tag.className = "flex items-center gap-1 bg-gray-100 border p-1 rounded hover:bg-gray-200";
-                tag.innerHTML = `<div class="w-3 h-3 rounded-full" style="background:${cor}"></div> ${nome} <span onclick="window.rmMarcenaria('${nome}')" class="text-red-500 cursor-pointer ml-1 font-bold">x</span>`;
+                tag.className = "flex items-center gap-1 bg-gray-100 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-200";
+                tag.innerHTML = `<div class="w-3 h-3 rounded-full" style="background:${cor}"></div> ${nome} <span class="text-red-500 font-bold ml-1">x</span>`;
+                tag.querySelector('span').onclick = () => rmMarcenaria(nome);
                 listaMarcenarias.appendChild(tag);
 
-                // No Select do Modal
+                // Select no Modal
                 const opt = document.createElement('option');
                 opt.value = nome;
                 opt.textContent = nome;
                 selectMarcenaria.appendChild(opt);
             }
 
-            // Atualiza Mapa e Tabela
-            const tbody = document.getElementById('lista-estandes');
-            tbody.innerHTML = '';
-
+            // B. Atualizar Mapa e Tabela
+            tableBody.innerHTML = '';
+            
             document.querySelectorAll('.estande').forEach(poly => {
                 const nome = poly.getAttribute('data-nome');
+                // Sanitizar ID para chave do firebase
                 const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
                 const dados = DADOS.estandes[idSafe] || {};
 
-                // MAPA (Pintar)
-                poly.classList.remove('status-construido', 'status-em_construcao');
-                if (dados.status && dados.status !== 'nao_iniciado') {
-                    poly.classList.add('status-' + dados.status);
-                }
-                
+                // COR DO MAPA
                 const cor = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]);
                 poly.style.fill = cor || "";
                 poly.style.fillOpacity = cor ? "0.6" : "";
 
+                // BORDA (STATUS)
+                poly.classList.remove('status-construido', 'status-em_construcao');
+                if(dados.status && dados.status !== 'nao_iniciado') {
+                    poly.classList.add('status-' + dados.status);
+                }
+
                 // TABELA
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 border-b";
+                tr.className = "border-b hover:bg-blue-50";
                 tr.innerHTML = `
                     <td class="p-3 font-bold">${nome}</td>
-                    <td class="p-3">${dados.produtor || '-'}</td>
+                    <td class="p-3 text-gray-600">${dados.produtor || '-'}</td>
                     <td class="p-3 flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background:${cor || '#ccc'}"></div>${dados.marcenaria || '-'}</td>
-                    <td class="p-3 text-center">${dados.status || '-'}</td>
+                    <td class="p-3 text-center text-xs font-bold uppercase text-gray-500">${dados.status || '-'}</td>
                     <td class="p-3 text-right"><button class="text-blue-600 font-bold text-xs" onclick="focarNoMapa('${nome}')">EDITAR</button></td>
                 `;
-                tbody.appendChild(tr);
+                tableBody.appendChild(tr);
             });
         }
 
@@ -430,11 +425,13 @@
         };
 
         window.rmMarcenaria = (nome) => {
-            if(confirm("Apagar?")) remove(ref(db, 'marcenarias/' + nome));
+            if(confirm(`Apagar ${nome}?`)) remove(ref(db, 'marcenarias/' + nome));
         };
 
+        // --- 4. MODAL LOGIC ---
+        // Funções anexadas a window para acesso global
         window.abrirModal = (poly) => {
-            estandeAtual = poly;
+            estandeSelecionado = poly;
             const nome = poly.getAttribute('data-nome');
             const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
             const dados = DADOS.estandes[idSafe] || {};
@@ -442,16 +439,14 @@
             document.getElementById('modal-title').innerText = nome;
             inputProdutor.value = dados.produtor || '';
             selectStatus.value = dados.status || 'nao_iniciado';
-            selectMarcenaria.value = dados.marcenaria || ''; // Puxa valor salvo
+            selectMarcenaria.value = dados.marcenaria || '';
 
-            // Link do Drive (Procura 'a' pai)
+            // Detectar Link
             let link = null;
             let p = poly;
-            // Sobe 4 níveis buscando <a>
             for(let i=0; i<4; i++) {
-                if (p.tagName === 'A' || p.tagName === 'a') { link = p.href; break; }
+                if(p.tagName === 'A' || p.tagName === 'a') { link = p.href; break; }
                 p = p.parentNode;
-                if(!p) break;
             }
 
             if(link) {
@@ -466,14 +461,14 @@
 
         window.fecharModal = () => {
             modal.classList.add('hidden');
-            estandeAtual = null;
+            estandeSelecionado = null;
         };
 
         window.salvarEstande = () => {
-            if(!estandeAtual) return;
-            const nome = estandeAtual.getAttribute('data-nome');
+            if(!estandeSelecionado) return;
+            const nome = estandeSelecionado.getAttribute('data-nome');
             const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
-
+            
             set(ref(db, 'estandes/' + idSafe), {
                 produtor: inputProdutor.value,
                 marcenaria: selectMarcenaria.value,
@@ -481,31 +476,29 @@
             });
             window.fecharModal();
         };
-
+        
+        // Expose helper globally for the table button
         window.focarNoMapa = (nome) => {
             const el = document.querySelector(`[data-nome="${nome}"]`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Efeito piscar
+            if(el) {
+                el.scrollIntoView({block: 'center', behavior: 'smooth'});
+                // Highlight
                 const old = el.style.stroke;
                 el.style.stroke = "red";
-                el.style.strokeWidth = "5px";
-                setTimeout(() => { 
-                    el.style.stroke = old; 
-                    el.style.strokeWidth = "";
-                }, 1000);
+                setTimeout(() => el.style.stroke = old, 1000);
                 window.abrirModal(el);
             }
         };
 
-        // --- 4. START ---
+        // --- 5. SETUP ---
+        // Attach click events manually to SVG elements
         document.querySelectorAll('.estande').forEach(poly => {
             const title = poly.querySelector('title');
             if(title) poly.setAttribute('data-nome', title.textContent.trim());
             
-            // Clique direto no elemento
+            // O "onclick" direto no elemento é mais garantido que addEventListener em alguns contextos de módulo
             poly.onclick = (e) => {
-                e.preventDefault();
+                e.preventDefault(); 
                 e.stopPropagation();
                 window.abrirModal(poly);
             };
