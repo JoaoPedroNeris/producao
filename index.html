@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gestão FIE 2025</title>
+    <title>Gestão FIE 2025 - Master</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-        /* MAPA */
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <style>
+        /* --- ESTILOS VISUAIS --- */
         .estande { 
-            fill: rgba(255, 255, 255, 0.5); 
+            fill: rgba(255, 255, 255, 0.4); 
             cursor: pointer; 
             transition: all 0.2s ease; 
             stroke-width: 2px; 
-            stroke: #94a3b8; 
+            stroke: #64748b; 
             pointer-events: auto; 
         }
         .estande:hover { 
@@ -25,13 +26,32 @@
         /* STATUS */
         .status-construido { stroke: #16a34a !important; stroke-width: 5px; } 
         .status-em_construcao { stroke: #ea580c !important; stroke-width: 5px; stroke-dasharray: 10,5; }
-        .status-nao_iniciado { stroke: #94a3b8 !important; stroke-width: 2px; }
-
-        /* UTIL */
-        .estande-match { stroke: #000 !important; stroke-width: 10px !important; fill-opacity: 1 !important; z-index: 50; }
-        .estande-dimmed { opacity: 0.15; }
-        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: #475569; }
+        .status-atrasado { stroke: #ef4444 !important; stroke-width: 6px; animation: pulse 2s infinite; }
         
+        @keyframes pulse { 50% { stroke-opacity: 0.5; } }
+
+        /* Tooltip Flutuante */
+        #tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+
+        /* Login Overlay */
+        #login-screen {
+            position: fixed; inset: 0; background: #0f172a; z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Mapa Container */
         .map-scroll-container {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
@@ -42,99 +62,147 @@
             max-height: 80vh;
         }
 
-        /* MODAL ANIMATION */
+        /* Animações */
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .anim-modal { animation: zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800 pb-20">
 
-    <div id="loading" class="loading-overlay">
-        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span>Carregando Sistema...</span>
+    <div id="tooltip"></div>
+
+    <div id="login-screen">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <h1 class="text-2xl font-black text-slate-800 mb-2">ACESSO RESTRITO</h1>
+            <p class="text-sm text-slate-500 mb-6">Gestão FIE 2025</p>
+            <input type="email" id="login-email" placeholder="Email" class="w-full border p-3 rounded-lg mb-3 outline-blue-500">
+            <input type="password" id="login-pass" placeholder="Senha" class="w-full border p-3 rounded-lg mb-6 outline-blue-500">
+            <button id="btn-entrar" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">ENTRAR</button>
+            <p id="login-error" class="text-red-500 text-xs mt-3 hidden">Erro de login. Verifique o console.</p>
+        </div>
     </div>
 
-    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden anim-modal border border-white/20">
-            <div class="bg-blue-900 p-4 text-white flex justify-between items-center">
+    <div id="loading" class="fixed inset-0 bg-white/95 z-[9000] hidden flex-col items-center justify-center font-bold text-slate-600">
+        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        Carregando Dados...
+    </div>
+
+    <div id="modal-edit" class="fixed inset-0 bg-slate-900/90 z-[5000] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden anim-modal border border-white/20 max-h-[90vh] overflow-y-auto">
+            <div class="bg-blue-900 p-4 text-white flex justify-between items-center sticky top-0 z-10">
                 <div>
-                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Editar Estande</span>
-                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[220px]">...</h3>
+                    <span class="text-[10px] uppercase font-bold opacity-60 tracking-wider">Painel de Controle</span>
+                    <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight truncate max-w-[250px]">...</h3>
                 </div>
                 <button onclick="window.fecharModal()" class="text-white/70 hover:text-white text-3xl p-2 cursor-pointer">&times;</button>
             </div>
             
             <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Produtor</label>
-                    <input type="text" id="input-produtor" placeholder="Digite o nome..." class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Equipe de Marcenaria (Cor)</label>
-                    <div class="relative">
-                        <select id="select-marcenaria" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none bg-slate-50 appearance-none h-12">
-                            <option value="">-- Sem Marcenaria --</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Produtor</label>
+                        <input type="text" id="input-produtor" class="w-full border-2 border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Entrega (Data)</label>
+                        <input type="date" id="input-data" class="w-full border-2 border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
                     </div>
                 </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status da Obra</label>
-                    <div class="relative">
-                        <select id="select-status" class="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-600 outline-none bg-white appearance-none h-12">
+
+                <div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Marcenaria (Cor)</label>
+                        <select id="select-marcenaria" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-bold bg-white">
+                            <option value="">-- Sem Marcenaria --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+                        <select id="select-status" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-bold bg-white">
                             <option value="nao_iniciado">⚪ Não Iniciado</option>
                             <option value="em_construcao">🚧 Em Construção</option>
                             <option value="construido">✅ Construído</option>
                         </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">▼</div>
                     </div>
                 </div>
 
-                <a id="btn-link-externo" href="#" target="_blank" class="hidden flex items-center justify-center gap-2 w-full py-4 bg-cyan-50 text-cyan-700 rounded-xl border-2 border-cyan-100 font-black text-xs uppercase hover:bg-cyan-100 transition shadow-sm">
-                    📂 ACESSAR PASTA DRIVE
-                </a>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Observações / Problemas</label>
+                    <textarea id="input-obs" rows="3" placeholder="Ex: Falta ponto de energia..." class="w-full border-2 border-slate-200 rounded-lg p-2 text-sm text-slate-700 outline-none focus:border-blue-500"></textarea>
+                </div>
 
-                <div class="flex gap-3 pt-2 border-t border-slate-100 mt-2">
-                    <button onclick="window.limparEstandeIndividual()" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold border border-red-100 hover:bg-red-500 hover:text-white transition cursor-pointer" title="Limpar">🗑️</button>
-                    <button onclick="window.salvarEstande()" class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-sm shadow-lg transition active:scale-95 cursor-pointer">CONFIRMAR</button>
+                <div class="flex gap-2">
+                    <a id="btn-link-externo" href="#" target="_blank" class="hidden flex-1 flex items-center justify-center gap-2 py-3 bg-cyan-50 text-cyan-700 rounded-lg border border-cyan-200 font-bold text-xs uppercase hover:bg-cyan-100 cursor-pointer">
+                        📂 Drive
+                    </a>
+                    <button onclick="window.gerarPDF()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 text-gray-700 rounded-lg border border-gray-200 font-bold text-xs uppercase hover:bg-gray-200 cursor-pointer">
+                        📄 PDF
+                    </button>
+                </div>
+
+                <div class="flex gap-3 pt-3 border-t border-slate-100">
+                    <button onclick="window.limparEstandeIndividual()" class="w-12 flex items-center justify-center bg-red-50 text-red-500 rounded-lg font-bold border border-red-100 hover:bg-red-500 hover:text-white transition cursor-pointer">🗑️</button>
+                    <button onclick="window.salvarEstande()" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-black uppercase text-sm shadow-lg transition active:scale-95 cursor-pointer">SALVAR ALTERAÇÕES</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="w-full px-2 md:px-8 pb-10 space-y-6">
-        <div class="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-b-2xl shadow-sm border-x border-b border-slate-200 sticky top-0 z-40">
-            <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
-                <h1 class="text-xl md:text-2xl font-black text-slate-800 uppercase italic tracking-tighter">FIE 2025</h1>
-                <div class="flex items-center gap-2 w-full md:w-auto bg-slate-50 px-3 py-1 rounded-full border border-slate-200">
-                    <div class="w-24 md:w-32 bg-slate-200 h-2 rounded-full overflow-hidden">
-                        <div id="progress-bar" class="bg-green-500 h-full w-0 transition-all duration-700"></div>
-                    </div>
-                    <span id="progress-text" class="text-xs font-black text-green-600">0%</span>
+    <div id="app-container" class="w-full px-2 md:px-8 pb-10 space-y-6 hidden">
+        
+        <div class="bg-white p-4 rounded-b-2xl shadow-sm border-x border-b border-slate-200 sticky top-0 z-40 space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 uppercase italic">FIE 2025 <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded not-italic ml-2">ADMIN</span></h1>
+                    <p class="text-xs text-slate-500 font-medium mt-1">Visão Geral da Montagem</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="window.logout()" class="px-3 py-1 bg-slate-200 text-slate-600 rounded text-xs font-bold hover:bg-slate-300">Sair</button>
                 </div>
             </div>
-            <div class="flex w-full md:w-auto gap-2">
-                <button onclick="window.exportarXLS()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase shadow hover:bg-green-700 cursor-pointer">Excel</button>
-                <button onclick="window.resetarDados()" class="flex-1 md:flex-none px-4 py-2 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold uppercase hover:bg-red-50 cursor-pointer">Reset</button>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-100 pt-4">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Total Estandes</span>
+                    <p id="dash-total" class="text-xl font-black text-slate-700">0</p>
+                </div>
+                <div class="bg-green-50 p-3 rounded-lg border border-green-100">
+                    <span class="text-[10px] font-bold text-green-600 uppercase">Prontos</span>
+                    <p id="dash-prontos" class="text-xl font-black text-green-700">0</p>
+                </div>
+                <div class="bg-orange-50 p-3 rounded-lg border border-orange-100">
+                    <span class="text-[10px] font-bold text-orange-600 uppercase">Em Obras</span>
+                    <p id="dash-obras" class="text-xl font-black text-orange-700">0</p>
+                </div>
+                <div class="bg-red-50 p-3 rounded-lg border border-red-100">
+                    <span class="text-[10px] font-bold text-red-600 uppercase">Atrasados</span>
+                    <p id="dash-atrasados" class="text-xl font-black text-red-700">0</p>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
-            <h3 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Cadastrar Equipe de Marcenaria</h3>
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex gap-2 w-full md:w-1/3">
-                    <input type="text" id="novo-nome-marcenaria" placeholder="Nome da Marcenaria" class="flex-1 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500">
-                    <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-10 w-12 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0">
-                    <button onclick="window.adicionarMarcenaria()" class="px-4 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900 cursor-pointer">+ Criar</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
+                <h3 class="text-xs font-black text-slate-400 uppercase mb-3">Marcenarias</h3>
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="novo-nome-marcenaria" placeholder="Nome" class="flex-1 border rounded px-2 text-sm">
+                    <input type="color" id="nova-cor-marcenaria" value="#2563eb" class="h-9 w-9 rounded cursor-pointer border-0 p-0">
+                    <button onclick="window.adicionarMarcenaria()" class="px-3 bg-slate-800 text-white rounded text-xs font-bold">+</button>
                 </div>
-                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto pb-2 md:pb-0 w-full"></div>
+                <div id="lista-marcenarias-container" class="flex flex-wrap gap-2 overflow-x-auto max-h-12"></div>
             </div>
-        </div>
 
-        <div class="relative">
-            <input type="text" id="search-input" placeholder="🔍 Buscar..." class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="bg-white rounded-xl shadow border border-slate-200 p-4">
+                <h3 class="text-xs font-black text-slate-400 uppercase mb-3">Filtros Rápidos</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filtrarMapa('todos')" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold hover:bg-slate-200">Todos</button>
+                    <button onclick="filtrarMapa('atrasados')" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold hover:bg-red-200">⚠️ Atrasados</button>
+                    <button onclick="filtrarMapa('em_construcao')" class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-xs font-bold hover:bg-orange-200">🚧 Em Obras</button>
+                    <button onclick="filtrarMapa('construido')" class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold hover:bg-green-200">✅ Prontos</button>
+                </div>
+                <input type="text" id="search-input" placeholder="Buscar..." class="w-full mt-2 border rounded px-2 py-1 text-sm">
+            </div>
         </div>
 
         <div class="space-y-2">
@@ -179,7 +247,7 @@
                         <polygon class="estande" points="3267,1589 3323,1641 3433,1519 3310,1414 3288,1444"><title>Acellormittal 11</title></polygon>
                         <a href="https://drive.google.com/drive/folders/10PY2vs8ird5Y927Oo7toCZt4lMApHJE9?usp=sharing"><polygon class="estande" points="3358,1347 3429,1408 3376,1465 3310,1408"><title>TotalDesign 12 </title></polygon></a>
                         <a href="https://drive.google.com/drive/folders/1a7vuUcSkchzVfbFDVjKNtDoVaf93z6J2?usp=sharing"><polygon class="estande" points="3367,1467 3490,1568 3547,1511 3424,1410"><title>Grupo 3G 13 14</title></polygon></a>
-                        <polygon class="estande" points="3433,1515 3494,1568 3420,1660 3328,1642"><title>`Br hidraulica 10</title></polygon>
+                        <polygon class="estande" points="3433,1515 3494,1568 3420,1660 3328,1642"><title>Br hidraulica 10</title></polygon>
                         <polygon class="estande" points="3240,1729 3315,1694 3420,1708 3490,1878 3262,1988 3218,1883"><title>Cemag 50 51 52 53 </title></polygon>
                         <polygon class="estande" points="3284,2026 3293,2056 3490,2083 3433,1960"><title>Central das correias 49</title></polygon>
                         <a href="https://drive.google.com/drive/folders/1vCjWd1-pXA-5UB3m1lZ6DJX4izSsSAp1?usp=sharing"><polygon class="estande" points="3507,1924 3542,2003 3464,2034 3433,1964"><title>Durametal 47</title></polygon></a>
@@ -207,6 +275,8 @@
                     <div class="min-w-[1000px] md:min-w-full relative group">
                         <img src="PB-FEIRA DA INDUSTRIA-2025-REV 36-ESPAÇO LIVRE X OCUPADOS (1)_pages-to-jpg-0003.jpg" class="w-full h-auto block opacity-60 pointer-events-none relative z-0">
                         <svg viewBox="0 0 4963 3509" class="absolute top-0 left-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
+                            <polygon class="estande" points="719,930 698,952 890,1122 1013,978"><title>Adece 02</title></polygon>
+                            <a href="https://drive.google.com/drive/folders/14CHWr9btxvTlCGFCt9OkrJz49AFfKUdy?usp=sharing"><polygon class="estande" points="671,987 1052,1329 1043,1359 628,1294 562,1246 588,1079"><title>Fiec 01</title></polygon></a>
                             <polygon class="estande" points="719,930 698,952 890,1122 1013,978"><title>Adece 02</title></polygon>
                             <a href="https://drive.google.com/drive/folders/14CHWr9btxvTlCGFCt9OkrJz49AFfKUdy?usp=sharing"><polygon class="estande" points="671,987 1052,1329 1043,1359 628,1294 562,1246 588,1079"><title>Fiec 01</title></polygon></a>
                             <polygon class="estande" points="1205,1008 1074,991 1004,1065 1175,1218"><title>Imprensa 03</title></polygon>
@@ -316,8 +386,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // FIREBASE CONFIG
+        // CONFIGURAÇÃO
         const firebaseConfig = {
             apiKey: "AIzaSyCVbw_1Jl300_lOFBKGnRBa0Y-pptgMRe0",
             authDomain: "fiec2025-fab88.firebaseapp.com",
@@ -331,38 +402,78 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const auth = getAuth(app);
 
         // ESTADO GLOBAL
         let DADOS = { estandes: {}, marcenarias: {} };
         let estandeSelecionado = null;
 
-        // ELEMENTOS DO DOM
+        // ELEMENTOS DOM
         const els = {
+            loginScreen: document.getElementById('login-screen'),
+            appContainer: document.getElementById('app-container'),
+            loginBtn: document.getElementById('btn-entrar'),
+            emailInput: document.getElementById('login-email'),
+            passInput: document.getElementById('login-pass'),
+            loginError: document.getElementById('login-error'),
             modal: document.getElementById('modal-edit'),
             title: document.getElementById('modal-title'),
             produtor: document.getElementById('input-produtor'),
+            data: document.getElementById('input-data'),
+            obs: document.getElementById('input-obs'),
             marcenaria: document.getElementById('select-marcenaria'),
             status: document.getElementById('select-status'),
             linkBtn: document.getElementById('btn-link-externo'),
             search: document.getElementById('search-input'),
             tableBody: document.getElementById('lista-estandes'),
-            progress: document.getElementById('progress-bar'),
-            progressText: document.getElementById('progress-text'),
             loading: document.getElementById('loading'),
-            marcenariaContainer: document.getElementById('lista-marcenarias-container')
+            marcenariaContainer: document.getElementById('lista-marcenarias-container'),
+            // Dashboard
+            dashTotal: document.getElementById('dash-total'),
+            dashProntos: document.getElementById('dash-prontos'),
+            dashObras: document.getElementById('dash-obras'),
+            dashAtrasados: document.getElementById('dash-atrasados')
         };
 
-        // --- EXPORTAR FUNÇÕES PARA O HTML (CRUCIAL PARA OS BOTÕES FUNCIONAREM) ---
+        // --- AUTHENTICATION ---
+        els.loginBtn.onclick = () => {
+            const email = els.emailInput.value;
+            const pass = els.passInput.value;
+            signInWithEmailAndPassword(auth, email, pass)
+                .catch((error) => {
+                    els.loginError.innerText = "Erro: " + error.message;
+                    els.loginError.classList.remove('hidden');
+                });
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                els.loginScreen.classList.add('hidden');
+                els.appContainer.classList.remove('hidden');
+                // Iniciar Sync
+                onValue(ref(db), (snapshot) => {
+                    els.loading.classList.add('hidden');
+                    const val = snapshot.val();
+                    DADOS = val || { estandes: {}, marcenarias: {} };
+                    if (!DADOS.estandes) DADOS.estandes = {};
+                    if (!DADOS.marcenarias) DADOS.marcenarias = {};
+                    renderizarTudo();
+                });
+            } else {
+                els.loginScreen.classList.remove('hidden');
+                els.appContainer.classList.add('hidden');
+            }
+        });
+
+        window.logout = () => signOut(auth);
+
+        // --- EXPORTAR FUNÇÕES PARA O HTML ---
         
         window.adicionarMarcenaria = () => {
             const nome = document.getElementById('novo-nome-marcenaria').value.trim();
             const cor = document.getElementById('nova-cor-marcenaria').value;
             if(!nome) return alert("Nome obrigatório");
-            
-            // Sanitização simples para chave do Firebase
             const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
-            
-            // Salva no banco
             set(ref(db, 'marcenarias/' + idSeguro), cor);
             document.getElementById('novo-nome-marcenaria').value = '';
         };
@@ -380,6 +491,8 @@
             
             set(ref(db, 'estandes/' + idSeguro), {
                 produtor: els.produtor.value,
+                data_entrega: els.data.value,
+                obs: els.obs.value,
                 marcenaria: els.marcenaria.value,
                 status: els.status.value
             });
@@ -397,7 +510,7 @@
         };
 
         window.resetarDados = () => {
-            if(confirm("ATENÇÃO: ISSO APAGARÁ TUDO NO SERVIDOR!")) {
+            if(confirm("ATENÇÃO: ISSO APAGARÁ TUDO!")) {
                 set(ref(db), { estandes: {}, marcenarias: {} });
             }
         };
@@ -407,15 +520,53 @@
             estandeSelecionado = null;
         };
 
-        window.exportarXLS = () => {
-            let csv = '\uFEFFEstande;Produtor;Marcenaria;Status\n'; 
-            for (const [id, dados] of Object.entries(DADOS.estandes)) {
-                csv += `${id};${dados.produtor};${dados.marcenaria};${dados.status}\n`;
-            }
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = "Relatorio_Online.csv";
-            link.click();
+        // --- FILTROS ---
+        window.filtrarMapa = (filtro) => {
+            document.querySelectorAll('.estande').forEach(poly => {
+                const nome = poly.getAttribute('data-nome');
+                const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
+                const dados = DADOS.estandes[idSafe] || {};
+                const status = dados.status || 'nao_iniciado';
+
+                let mostrar = true;
+                if (filtro === 'atrasados') {
+                    // Lógica simples de atraso: Data passada e não concluído
+                    const hoje = new Date().toISOString().split('T')[0];
+                    mostrar = (dados.data_entrega && dados.data_entrega < hoje && status !== 'construido');
+                } else if (filtro !== 'todos') {
+                    mostrar = (status === filtro);
+                }
+
+                if (mostrar) {
+                    poly.classList.remove('estande-dimmed');
+                } else {
+                    poly.classList.add('estande-dimmed');
+                }
+            });
+        };
+
+        // --- PDF GENERATION ---
+        window.gerarPDF = () => {
+            if(!estandeSelecionado) return;
+            const nome = estandeSelecionado.getAttribute('data-nome');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(22);
+            doc.text(`Ficha de Montagem: ${nome}`, 10, 20);
+            
+            doc.setFontSize(16);
+            doc.text(`Produtor: ${els.produtor.value || '-'}`, 10, 40);
+            doc.text(`Marcenaria: ${els.marcenaria.value || '-'}`, 10, 50);
+            doc.text(`Status: ${els.status.value}`, 10, 60);
+            doc.text(`Data Entrega: ${els.data.value || '-'}`, 10, 70);
+
+            doc.setFontSize(14);
+            doc.text("Observações:", 10, 90);
+            const splitObs = doc.splitTextToSize(els.obs.value || 'Nenhuma.', 180);
+            doc.text(splitObs, 10, 100);
+
+            doc.save(`Ficha_${nome}.pdf`);
         };
 
         window.abrirModal = (poly) => {
@@ -426,19 +577,19 @@
             
             els.title.innerText = nome;
             els.produtor.value = dados.produtor || ''; 
+            els.data.value = dados.data_entrega || '';
+            els.obs.value = dados.obs || '';
             els.status.value = dados.status || 'nao_iniciado';
 
-            // RECARREGA A LISTA DO SELECT ANTES DE DEFINIR O VALOR
+            // RECARREGA A LISTA DO SELECT
             renderizarMarcenarias(); 
             els.marcenaria.value = dados.marcenaria || ''; 
 
-            // Link Logic (Robust closest 'a')
+            // Link Logic
             let link = null;
             let current = poly;
-            // Sobe até 4 níveis buscando <a>. Aumentei para 4 para garantir.
             for(let i=0; i<4; i++) {
                 if (current.tagName === 'A' || current.tagName === 'a') {
-                    // Tenta pegar href ou xlink:href (para compatibilidade com SVGs antigos)
                     link = current.getAttribute('href') || current.getAttribute('xlink:href');
                     break;
                 }
@@ -453,7 +604,7 @@
             } else {
                 els.linkBtn.classList.add('hidden');
                 els.linkBtn.classList.remove('flex');
-                els.linkBtn.href = '#'; // Reseta o link para evitar comportamentos estranhos
+                els.linkBtn.href = '#';
             }
 
             els.modal.classList.remove('hidden');
@@ -475,28 +626,18 @@
             }
         };
 
-        // --- SINCRONIZAÇÃO E RENDERIZAÇÃO ---
-        onValue(ref(db), (snapshot) => {
-            els.loading.style.display = 'none';
-            const val = snapshot.val();
-            DADOS = val || { estandes: {}, marcenarias: {} };
-            if (!DADOS.estandes) DADOS.estandes = {};
-            if (!DADOS.marcenarias) DADOS.marcenarias = {};
-
+        // --- RENDERIZAÇÃO ---
+        function renderizarTudo() {
             renderizarMarcenarias();
             renderizarMapaETabela();
-        });
+            atualizarDashboard();
+        }
 
         function renderizarMarcenarias() {
             els.marcenariaContainer.innerHTML = '';
             els.marcenaria.innerHTML = '<option value="">-- Sem Marcenaria --</option>';
 
-            const lista = DADOS.marcenarias;
-            if(Object.keys(lista).length === 0) {
-                els.marcenariaContainer.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhuma cadastrada.</p>';
-            }
-
-            for (const [nome, cor] of Object.entries(lista)) {
+            for (const [nome, cor] of Object.entries(DADOS.marcenarias)) {
                 // UI
                 els.marcenariaContainer.innerHTML += `
                     <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shrink-0">
@@ -514,7 +655,9 @@
         }
 
         function renderizarMapaETabela() {
-            let total = 0, concluidos = 0;
+            let total = 0, prontos = 0, obras = 0, atrasados = 0;
+            const hoje = new Date().toISOString().split('T')[0];
+
             els.tableBody.innerHTML = '';
 
             document.querySelectorAll('.estande').forEach(poly => {
@@ -522,17 +665,18 @@
                 const idSeguro = nome.replace(/[.#$[\]\/]/g, "_");
                 const dados = DADOS.estandes[idSeguro] || { produtor: '', marcenaria: '', status: 'nao_iniciado' };
                 
-                // Visual
                 aplicarEstiloVisual(poly, dados);
 
-                // Tabela
+                // Métricas
                 total++;
-                if(dados.status === 'construido') concluidos++;
-
-                let badgeClass = 'bg-slate-100 text-slate-500 border-slate-200';
-                let badgeText = 'Não Iniciado';
-                if (dados.status === 'construido') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; badgeText = 'Pronto'; }
-                else if (dados.status === 'em_construcao') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; badgeText = 'Obras'; }
+                if (dados.status === 'construido') prontos++;
+                if (dados.status === 'em_construcao') obras++;
+                if (dados.data_entrega && dados.data_entrega < hoje && dados.status !== 'construido') {
+                    atrasados++;
+                    poly.classList.add('status-atrasado');
+                } else {
+                    poly.classList.remove('status-atrasado');
+                }
 
                 const corHex = (dados.marcenaria && DADOS.marcenarias[dados.marcenaria]) || '#cbd5e1';
                 
@@ -545,18 +689,23 @@
                         <span class="inline-block w-3 h-3 rounded-full mr-2 shadow-sm" style="background:${corHex}"></span>
                         ${dados.marcenaria || '-'}
                     </td>
-                    <td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border ${badgeClass}">${badgeText}</span></td>
+                    <td class="p-4 text-center text-xs font-bold uppercase">${dados.status}</td>
                     <td class="p-4 text-right"><span class="text-blue-600 text-xs font-bold uppercase opacity-0 group-hover:opacity-100 cursor-pointer" onclick="window.focarNoMapa('${nome}')">Editar</span></td>
                 `;
                 els.tableBody.appendChild(tr);
             });
 
-            // Progresso
-            const p = total > 0 ? Math.round((concluidos / total) * 100) : 0;
-            els.progress.style.width = p + '%';
-            els.progressText.innerText = p + '%';
+            // Atualiza Dashboard numbers
+            els.dashTotal.innerText = total;
+            els.dashProntos.innerText = prontos;
+            els.dashObras.innerText = obras;
+            els.dashAtrasados.innerText = atrasados;
             
             filtrarBusca(els.search.value);
+        }
+
+        function atualizarDashboard() {
+            // Aqui poderia entrar o Chart.js se quisesse
         }
 
         function aplicarEstiloVisual(poly, dados) {
@@ -597,6 +746,24 @@
             const title = poly.querySelector('title');
             if(title) poly.setAttribute('data-nome', title.textContent.trim());
             
+            // Tooltip events
+            poly.addEventListener('mouseenter', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                const nome = poly.getAttribute('data-nome');
+                const idSafe = nome.replace(/[.#$[\]\/]/g, "_");
+                const dados = DADOS.estandes[idSafe] || {};
+                tooltip.innerHTML = `<strong>${nome}</strong><br>${dados.produtor || 'Sem produtor'}<br>${dados.status || 'Não iniciado'}`;
+                tooltip.style.display = 'block';
+            });
+            poly.addEventListener('mousemove', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY + 10) + 'px';
+            });
+            poly.addEventListener('mouseleave', () => {
+                document.getElementById('tooltip').style.display = 'none';
+            });
+
             poly.onclick = (e) => {
                 e.preventDefault(); 
                 e.stopPropagation();
